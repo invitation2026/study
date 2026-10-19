@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#070c16">
+  <title>Login | Study Command Center</title>
+
+  <style>
+    :root{
+      --bg:#070c16;
+      --card:#101a2c;
+      --card-2:#152136;
+      --line:#22314b;
+      --line-2:#31456a;
+      --text:#eef3ff;
+      --muted:#9db0cf;
+      --accent:#8ea2ff;
+      --accent-2:#6f86ff;
+      --green:#5eead4;
+      --red:#fb7185;
+      --yellow:#fcd34d;
+      --radius:16px;
+      --shadow:0 12px 30px rgba(0,0,0,.35);
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0}
+    body{
+      min-height:100vh;
+      color:var(--text);
+      background:
+        radial-gradient(900px 480px at 15% -10%,#17253f 0%,transparent 60%),
+        radial-gradient(700px 420px at 100% 0%,#1c2544 0%,transparent 55%),
+        var(--bg);
+      font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+      -webkit-font-smoothing:antialiased;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+
+    .wrap{
+      width:100%;
+      max-width:440px;
+    }
+
+    .card{
+      background:linear-gradient(180deg,#16233a,#101a2c);
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:22px;
+      box-shadow:var(--shadow);
+    }
+
+    .brand{
+      color:var(--accent);
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      margin-bottom:8px;
+    }
+
+    h1{
+      margin:0 0 6px;
+      font-size:28px;
+      line-height:1.1;
+      letter-spacing:-.02em;
+    }
+
+    .sub{
+      margin:0 0 18px;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .tabs{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-bottom:14px;
+    }
+
+    .tab-btn{
+      border:1px solid var(--line);
+      background:#0a1526;
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      font:inherit;
+      font-weight:800;
+      cursor:pointer;
+      transition:.15s ease;
+    }
+
+    .tab-btn:hover{
+      background:#0d1a30;
+    }
+
+    .tab-btn.active{
+      background:linear-gradient(180deg,#9aabff,#7f93ff);
+      color:#0d1424;
+      border-color:#9aabff;
+    }
+
+    .message{
+      padding:12px 14px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#0a1526;
+      color:#dbe4fb;
+      font-size:13.5px;
+      margin-bottom:14px;
+    }
+
+    .message.success{
+      border-color:#2c6157;
+      background:#0f2a26;
+      color:#bbf7e6;
+    }
+
+    .message.error{
+      border-color:#6a3040;
+      background:#241219;
+      color:#ffc9d4;
+    }
+
+    .message.info{
+      border-color:#2c4a6b;
+      background:#0f1f30;
+      color:#cfe4ff;
+    }
+
+    .form{
+      display:grid;
+      gap:12px;
+    }
+
+    label{
+      display:grid;
+      gap:6px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+    }
+
+    input, select{
+      width:100%;
+      padding:12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#091322;
+      color:var(--text);
+      font:inherit;
+      outline:none;
+    }
+
+    input:focus, select:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(142,162,255,.18);
+    }
+
+    .btn{
+      padding:12px 14px;
+      border:1px solid var(--line-2);
+      border-radius:12px;
+      background:#1b2a45;
+      color:var(--text);
+      font:inherit;
+      font-weight:850;
+      cursor:pointer;
+      transition:.15s ease;
+    }
+
+    .btn:hover{
+      filter:brightness(1.12);
+    }
+
+    .btn:disabled{
+      opacity:.6;
+      cursor:not-allowed;
+    }
+
+    .btn.primary{
+      background:linear-gradient(180deg,#9aabff,#7f93ff);
+      color:#0d1424;
+      border-color:#9aabff;
+    }
+
+    .hint{
+      margin:14px 0 0;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+
+    [hidden]{
+      display:none !important;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <div class="brand">Study Command Center</div>
+      <h1>Login / Register</h1>
+      <p class="sub">Apne role ke hisaab se dashboard milega.</p>
+
+      <div id="authOptions">
+        <div class="tabs">
+          <button class="tab-btn active" id="tabLogin" type="button">Login</button>
+          <button class="tab-btn" id="tabRegister" type="button">Register</button>
+        </div>
+
+        <div class="message info" id="message" hidden></div>
+
+        <form class="form" id="loginForm">
+          <label>
+            User ID
+            <input id="loginUserId" type="text" placeholder="e.g. navya" autocomplete="username" spellcheck="false">
+          </label>
+
+          <label>
+            Password
+            <input id="loginPassword" type="password" placeholder="Minimum 6 characters" autocomplete="current-password">
+          </label>
+
+          <button class="btn primary" id="loginBtn" type="submit">Login</button>
+        </form>
+
+        <form class="form" id="registerForm" hidden>
+          <label>
+            Display Name
+            <input id="regDisplayName" type="text" placeholder="e.g. Navya" autocomplete="name">
+          </label>
+
+          <label>
+            User ID
+            <input id="regUserId" type="text" placeholder="e.g. navya" autocomplete="username" spellcheck="false">
+          </label>
+
+          <label>
+            Password
+            <input id="regPassword" type="password" placeholder="Minimum 6 characters" autocomplete="new-password">
+          </label>
+
+          <label>
+            Confirm Password
+            <input id="regConfirm" type="password" placeholder="Repeat password" autocomplete="new-password">
+          </label>
+
+          <label>
+            Role
+            <select id="regRole">
+              <option value="abhinav">Abhinav — Class 12 Commerce Planner</option>
+              <option value="navya">Navya — Class 10 Planner</option>
+              <option value="deepak">Deepak — Class 12 Planner</option>
+              <option value="admin">Admin — User Panel</option>
+            </select>
+          </label>
+
+          <button class="btn primary" id="registerBtn" type="submit">Register</button>
+        </form>
+
+        <p class="hint">
+          Pehli baar admin chahiye ho to role “admin” select karke register kar lo.
+          User ID small letters, numbers, underscore ya dash le sakta hai. Example: <b>navya</b>, <b>deepak_12</b>.
+        </p>
+      </div>
+
+      <div class="form" id="signedInPanel" hidden>
+        <div class="message info">Already logged in as <b data-user-name></b>.</div>
+        <button class="btn" type="button" data-logout>Logout</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Firebase compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+
+  <script src="router.js"></script>
+  <script src="auth.js"></script>
+</body>
+</html>

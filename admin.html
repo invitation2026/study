@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1220">
+<title>Class 12 Commerce | 50-Day Smart Study Command Center</title>
+<style>
+:root{
+  --bg:#070c16;--card:#101a2c;--card-2:#152136;--line:#22314b;--line-2:#31456a;
+  --text:#eef3ff;--muted:#9db0cf;--accent:#8ea2ff;--accent-2:#6f86ff;
+  --green:#5eead4;--yellow:#fcd34d;--red:#fb7185;--radius:16px;
+  --shadow:0 12px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  min-height:100vh;color:var(--text);
+  background:
+    radial-gradient(900px 480px at 15% -10%,#17253f 0%,transparent 60%),
+    radial-gradient(700px 420px at 100% 0%,#1c2544 0%,transparent 55%),
+    var(--bg);
+  font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+body.modal-open{overflow:hidden}
+main{max-width:1120px;margin:0 auto;padding:22px 14px 70px}
+.hero,.panel,.stat{border:1px solid var(--line);border-radius:var(--radius);background:var(--card)}
+.hero{
+  padding:24px;box-shadow:var(--shadow);
+  background:
+    radial-gradient(600px 300px at 0% 0%,rgba(142,162,255,.16),transparent 60%),
+    linear-gradient(135deg,#1b2b48,#111c30);
+}
+.eyebrow{color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.hero h1{font-size:clamp(26px,5vw,40px);line-height:1.08;margin:8px 0 10px;letter-spacing:-.02em}
+.hero p{max-width:820px;color:var(--muted);margin:0}
+.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.chip{display:inline-block;border:1px solid var(--line);background:#0a1526;border-radius:99px;padding:6px 11px;font-size:12px;color:#dbe4fb}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.stat{padding:14px}
+.stat small{color:var(--muted);display:block;font-size:11.5px;letter-spacing:.03em;text-transform:uppercase;font-weight:700}
+.stat strong{font-size:22px;display:block;margin-top:2px;letter-spacing:-.01em}
+.stat .sub{color:var(--muted);font-size:12px}
+.panel{margin:14px 0;padding:18px}
+.panel h2{font-size:19px;margin:0 0 4px;letter-spacing:-.01em}
+.panel .sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+.controls{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{color:var(--muted);font-size:12px;font-weight:750}
+.field input,.field select{
+  width:100%;padding:11px 12px;border-radius:11px;border:1px solid var(--line);
+  background:#091322;color:var(--text);font:inherit;outline:none;
+}
+.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(142,162,255,.18)}
+.field input[readonly]{color:#cfe0ff;background:#0b1830}
+.btn{
+  padding:10px 14px;border:1px solid var(--line-2);border-radius:11px;
+  background:#1b2a45;color:var(--text);font:inherit;font-weight:750;cursor:pointer;
+  transition:filter .15s ease,transform .05s ease,background .15s ease;
+}
+.btn:hover{filter:brightness(1.12)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:linear-gradient(180deg,#9aabff,#7f93ff);color:#0d1424;border-color:#9aabff}
+.btn.danger{background:linear-gradient(180deg,#f4546f,#e11d48);border-color:#f4546f;color:#fff}
+.btn.ghost{background:transparent}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:10px}
+.row .field{flex:1;min-width:200px;margin:0}
+.tasks{display:grid;gap:9px}
+.task{
+  display:grid;grid-template-columns:22px 108px 1fr;gap:11px;align-items:start;
+  background:#0a1526;border:1px solid var(--line);border-left:3px solid var(--line-2);
+  border-radius:13px;padding:12px;transition:background .15s ease,border-color .15s ease;
+}
+.task:hover{background:#0c1930}
+.task input[type=checkbox]{width:17px;height:17px;margin-top:4px;accent-color:var(--green);cursor:pointer}
+.task.done{opacity:.55}
+.task.done .tasktitle{text-decoration:line-through}
+.task.is-now{background:#12233d;box-shadow:0 0 0 1px rgba(142,162,255,.6) inset}
+.task.topic-task{border-left-width:4px}
+.time{color:var(--accent);font-weight:800;font-variant-numeric:tabular-nums;font-size:13px;line-height:1.35}
+.time small{display:block;color:var(--muted);font-weight:600;font-size:11.5px}
+.tasktitle{font-weight:800;font-size:14.5px}
+.desc{font-size:13px;color:var(--muted);margin-top:3px}
+.nowbadge{display:inline-block;font-size:10px;font-weight:900;letter-spacing:.08em;padding:2px 7px;border-radius:99px;background:var(--accent);color:#0d1424;vertical-align:middle;margin-left:6px}
+.task[data-subject="acc"]{border-left-color:#8ea2ff}
+.task[data-subject="eco"]{border-left-color:#5eead4}
+.task[data-subject="bst"]{border-left-color:#fcd34d}
+.task[data-subject="eng"]{border-left-color:#7dd3fc}
+.task[data-subject="pe"]{border-left-color:#fb7185}
+.task[data-subject="rev"]{border-left-color:#c084fc}
+.task[data-subject="class"]{border-left-color:#f472b6}
+.task[data-subject="routine"]{border-left-color:#3a4c6b}
+.now{border-left:4px solid var(--accent);background:var(--card-2);padding:16px;border-radius:13px;margin-top:8px}
+.now strong{font-size:20px;display:block;margin:4px 0;letter-spacing:-.01em}
+.now .next{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+.subhead{font-weight:800;color:#dce5ff;margin:18px 0 8px;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.subhead .count{font-size:11.5px;font-weight:800;color:var(--muted);background:#0a1526;border:1px solid var(--line);border-radius:99px;padding:2px 9px;font-variant-numeric:tabular-nums}
+.roadmap{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.roadmap-item{
+  display:block;width:100%;text-align:left;background:#0a1526;color:var(--text);
+  border:1px solid var(--line);border-radius:13px;padding:12px;cursor:pointer;
+  transition:border-color .15s ease,background .15s ease;
+}
+.roadmap-item:hover{background:#0d1a30;border-color:var(--line-2)}
+.roadmap-item.selected{border-color:var(--accent);background:#152544;box-shadow:0 0 0 1px var(--accent) inset}
+.roadmap-item.complete{border-color:#2f6f63}
+.rmhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:2px}
+.rmprog{font-size:11.5px;color:var(--muted);background:#0a1526;border:1px solid var(--line);border-radius:99px;padding:2px 8px;font-variant-numeric:tabular-nums;font-weight:800}
+.roadmap-item.complete .rmprog{color:#0d1424;background:var(--green);border-color:var(--green)}
+.notice{padding:13px 14px;border:1px solid #6b5a2a;background:#241f12;border-radius:12px;color:#ffe7ad;font-size:13px;line-height:1.5}
+.notice.warn{border-color:#6a3040;background:#241219;color:#ffc9d4}
+.notice.info{border-color:#2c4a6b;background:#0f1f30;color:#cfe4ff}
+.notice.safe{border-color:#2c6157;background:#0f2a26;color:#bbf7e6}
+.tag{display:inline-block;border:1px solid var(--line);background:#0a1526;border-radius:99px;padding:5px 11px;font-size:12px;font-weight:750;color:#dbe4fb;white-space:nowrap}
+.tag.heavy{color:#ffc9d4;border-color:#6a3040;background:#2a1620}
+.tag.light{color:#bbf7e6;border-color:#2c6157;background:#0f2a26}
+.tag.medium{color:#ffe9a8;border-color:#6b5a2a;background:#292313}
+.tag.flex{color:#d8ccff;border-color:#4a3f7a;background:#1e1833}
+.tag.cloud-saved{color:#bbf7e6;border-color:#2c6157;background:#0f2a26}
+.tag.cloud-saving{color:#ffe9a8;border-color:#6b5a2a;background:#292313}
+.tag.cloud-sync{color:#cdd9f2;border-color:var(--line-2);background:#101c30}
+.tag.cloud-error{color:#ffc9d4;border-color:#6a3040;background:#2a1620}
+.tag.cloud-off{color:var(--muted);border-color:var(--line);background:#0a1526}
+.progress{height:8px;background:#2a3852;border-radius:99px;overflow:hidden;margin-top:8px}
+.progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#a5b4fc,#5eead4);transition:width .35s ease}
+.dayhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.danger-zone{border-color:#5b2130;background:linear-gradient(180deg,#1a1220,#141020)}
+.danger-zone h2{color:#ffc9d4}
+details.panel > summary{cursor:pointer;font-weight:800;font-size:16px;list-style:none;display:flex;align-items:center;gap:8px}
+details.panel > summary::-webkit-details-marker{display:none}
+details.panel > summary::after{content:'▾';margin-left:auto;color:var(--muted);transition:transform .2s}
+details.panel[open] > summary::after{transform:rotate(180deg)}
+.helpbody{margin-top:12px;color:#cdd9f2;font-size:13.5px}
+.helpbody ol{margin:0;padding-left:20px;display:grid;gap:8px}
+.helpbody b{color:#fff}
+.footer{font-size:12px;color:var(--muted);padding:14px 4px;line-height:1.6}
+.small{font-size:12px}
+.muted{color:var(--muted)}
+
+.authbar{
+  position:sticky;top:0;z-index:900;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:8px 14px;
+  background:rgba(7,12,22,.82);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
+  font-size:13px;color:var(--muted);
+}
+.authbar b{color:var(--text)}
+.authbar .btn{padding:6px 10px;font-size:12px;border-radius:9px}
+
+/* chapter checklist wrapper */
+.chapter-wrap{list-style:none}
+.chapter-wrap > summary{list-style:none;position:relative;padding-right:22px}
+.chapter-wrap > summary::-webkit-details-marker{display:none}
+.chapter-wrap > summary::after{content:'▾';position:absolute;right:4px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;transition:transform .2s}
+.chapter-wrap[open] > summary::after{transform:translateY(-50%) rotate(180deg)}
+/* modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(3,7,15,.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:18px;z-index:1000}
+.modal-backdrop[hidden]{display:none}
+.modal{width:100%;max-width:520px;background:linear-gradient(180deg,#16233a,#101a2c);border:1px solid var(--line-2);border-radius:18px;padding:20px;box-shadow:var(--shadow);animation:pop .18s ease-out}
+@keyframes pop{from{transform:translateY(8px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+.modal h3{margin:0 0 8px;font-size:20px;letter-spacing:-.01em}
+.modal p{margin:0 0 10px;color:var(--muted);font-size:14px}
+.modal ul{margin:0 0 16px;padding-left:18px;color:#cdd9f2;font-size:13.5px}
+.modal ul li{margin:4px 0}
+.modal ul li::marker{color:var(--red)}
+.modal .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:0}
+/* toasts */
+.toasts{position:fixed;left:0;right:0;bottom:16px;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:1100;pointer-events:none;padding:0 14px}
+.toast{pointer-events:auto;display:flex;align-items:center;gap:12px;max-width:560px;width:100%;background:#16233a;border:1px solid var(--line-2);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);font-size:14px;animation:slideup .2s ease-out}
+.toast-out{animation:fadeout .25s ease-in forwards}
+@keyframes slideup{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+@keyframes fadeout{to{transform:translateY(10px);opacity:0}}
+.toast-success{border-color:#2f6f63}
+.toast-warning{border-color:#7a5a20}
+.toast-error{border-color:#7a2c3a}
+.toast-info{border-color:var(--line-2)}
+.toast span{flex:1}
+.toast-action{background:var(--accent);color:#111827;border:none;border-radius:9px;padding:7px 12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.toast-close{background:transparent;border:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:0 4px}
+@media(max-width:760px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .controls{grid-template-columns:repeat(2,1fr)}
+  .roadmap{grid-template-columns:1fr}
+  .task{grid-template-columns:20px 82px 1fr}
+  .authbar{font-size:12px;padding:8px 10px}
+}
+@media(max-width:440px){
+  .controls{grid-template-columns:1fr}
+  .task{grid-template-columns:20px 1fr}
+  .time{grid-column:2}
+  .taskbody{grid-column:2}
+  .hero{padding:18px}
+  .panel{padding:15px}
+  .authbar{flex-direction:column;align-items:flex-start;gap:6px}
+}
+</style>
+</head>
+<body>
+
+<div class="authbar">
+  <span>Logged in as: <b data-user-name>—</b> · Role: <span data-user-role>—</span></span>
+  <button class="btn ghost" type="button" data-logout>Logout</button>
+</div>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">CBSE Class XII · Commerce · 50-Day Smart Mission</div>
+  <h1>Study Command Center</h1>
+  <p>Topic-level tracking ke saath. Har chapter ke andar multiple topics (concept → numerical → practice → test) alag-alag track hote hain. Chapter tabhi complete hota hai jab uske saare topics + test done ho. "Now" panel tumhe exact next action bataata hai — aaj ka, backlog ka, ya kal ka. Accountancy priority, saath mein Economics, Business Studies, English Core aur Physical Education.</p>
+  <div class="chips">
+    <span class="chip">Plan start: 18 Oct 2026</span>
+    <span class="chip">Sleep cutoff: 9:00 PM</span>
+    <span class="chip">Tue/Thu class: 5:15–7 PM</span>
+    <span class="chip">Wed: 7:15–9 PM</span>
+    <span class="chip">Fri: 7–9 PM</span>
+  </div>
+</header>
+
+<details class="panel">
+  <summary>❓ Ye app kaise kaam karta hai? (click karke padho)</summary>
+  <div class="helpbody">
+    <ol>
+      <li><b>50-day plan start</b> — jis din se plan shuru karna hai wo date daalo.</li>
+      <li><b>Kis din ka timetable?</b> — kisi bhi date par jaakar us din ka schedule dekh sakte ho.</li>
+      <li><b>School mode</b> — School attend / Holiday / Skip. Holiday par morning study blocks add ho jaate hain.</li>
+      <li><b>Study intensity</b> — Auto recommended. Light/Medium/Heavy se din ka load adjust hota hai.</li>
+      <li><b>Task tick = topic complete</b> — har topic (concept / numerical / practice / test) apne aap mein ek unit hai. Tick karo toh wahi topic done, poora chapter nahi.</li>
+      <li><b>Chapter auto-complete</b> — chapter tabhi complete maana jaayega jab uske saare topics tick ho jaayen. Adhoora chapter agle din continue hoga, force nahi karega naya chapter.</li>
+      <li><b>Topic tracker</b> — niche chapter expand karke uska specific topic checklist dekh sakte ho. Ye daily timetable se sync hai.</li>
+      <li><b>Backlog</b> — agar ek din ka koi topic pending reh gaya, "Now" panel use backlog ke roop mein flag karegaa — wahi pehle finish karo, phir aaj ka plan continue.</li>
+      <li><b>Cloud sync</b> — Sync ID ko copy karke doosre device par daal kar progress restore kar sakte ho.</li>
+      <li><b>Safety</b> — Clear / Reset jaise destructive actions se pehle confirm popup aayega, phir 15 sec tak Undo.</li>
+    </ol>
+  </div>
+</details>
+
+<div class="stats">
+  <div class="stat"><small>Plan day</small><strong id="dayStat">—</strong><span class="sub">50 days</span></div>
+  <div class="stat"><small>Topics done</small><strong id="doneStat">0</strong><span class="sub" id="totalStat">—</span></div>
+  <div class="stat"><small>Selected date</small><strong id="dateStat" style="font-size:15px">—</strong><span class="sub" id="statusStat">—</span></div>
+  <div class="stat"><small>Overall progress</small><strong id="progressStat">0%</strong><div class="progress"><span id="progressBar"></span></div></div>
+</div>
+
+<section class="panel cloud-panel">
+  <div class="dayhead">
+    <div>
+      <h2>☁️ Cloud sync (Firebase — permanent storage)</h2>
+      <p class="sub">Aapka topic progress <b>Firebase Realtime Database</b> mein permanently save hota hai. Browser storage sirf fast cache ke liye — page refresh, browser close ya device restart par data cloud se wapas load hota hai.</p>
+    </div>
+    <span class="tag cloud-off" id="cloudTag">Connecting…</span>
+  </div>
+
+  <div class="notice info" style="margin-bottom:14px">
+    <b>Save status kaise padhein:</b> <b>Saving…</b> = data cloud par bheja ja raha hai · <b>Saved to cloud</b> = safely save ho gaya · <b>Save failed</b> = network/Firebase problem, data abhi cloud par nahi pahuncha. Fail hone par turant retry karo.
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="syncIdView">Aapka Sync ID (isme save ho raha hai)</label>
+      <input id="syncIdView" readonly>
+    </div>
+    <button class="btn" id="copySyncBtn" type="button">Copy ID</button>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label for="syncIdInput">Doosre device ka Sync ID daalo (restore)</label>
+      <input id="syncIdInput" placeholder="stu-xxxxxxxx" autocomplete="off" spellcheck="false">
+    </div>
+    <button class="btn primary" id="restoreBtn" type="button">Restore</button>
+  </div>
+  <p class="small muted" style="margin:12px 0 0">Sync ID ko safe rakho. Public ID share mat karo. Restore karte waqt current progress overwrite hoti hai — pehle current ID copy kar lo.</p>
+</section>
+
+<section class="panel">
+  <h2>1. Date aur school setup</h2>
+  <p class="sub">Plan start date, selected date aur din ka mode yahan se change karo. Ye settings bhi Firebase mein save hoti hain.</p>
+  <div class="controls">
+    <div class="field"><label for="startDate">50-day plan start</label><input type="date" id="startDate" value="2026-10-18"></div>
+    <div class="field"><label for="selectedDate">Kis din ka timetable?</label><input type="date" id="selectedDate"></div>
+    <div class="field"><label for="schoolMode">School mode</label>
+      <select id="schoolMode">
+        <option value="attend">School attend (normal day)</option>
+        <option value="holiday">School holiday</option>
+        <option value="skip">School skip / absent</option>
+      </select>
+    </div>
+    <div class="field"><label for="intensity">Study intensity</label>
+      <select id="intensity">
+        <option value="auto">Auto (recommended)</option>
+        <option value="light">Light revision</option>
+        <option value="medium">Medium</option>
+        <option value="heavy">Heavy study</option>
+      </select>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn" id="todayBtn" type="button">Aaj par wapas</button>
+  </div>
+  <p class="small muted" style="margin:12px 0 0">School holiday/skip mode morning study blocks add karta hai. School skip encourage nahi kiya ja raha — sirf schedule adjust karne ka option hai.</p>
+</section>
+
+<section class="panel">
+  <h2>2. Abhi kya karna hai? (smart direction)</h2>
+  <p class="sub">Ye panel hamesha <b>aaj ki date</b> ke hisaab se dikhata hai. Pehle aaj ka current/next study block; agar aaj ka plan done hai toh <b>backlog</b> (past pending topics); agar backlog bhi clear hai toh kal ka pehla topic preview.</p>
+  <div class="now">
+    <div class="muted small" id="clock">Device time: —</div>
+    <strong id="currentTitle">Schedule load ho raha hai…</strong>
+    <p class="muted" id="currentDesc">—</p>
+    <div class="next">
+      <div class="small muted">Next task</div>
+      <div class="tasktitle" id="nextTitle">—</div>
+      <div class="desc" id="nextDesc">—</div>
+    </div>
+  </div>
+</section>
+
+<section class="panel" id="timetablePanel">
+  <div class="dayhead">
+    <div>
+      <h2 id="todayHeading">Selected day — timetable</h2>
+      <div class="muted small" id="daySummary">—</div>
+    </div>
+    <span class="tag" id="intensityTag">—</span>
+  </div>
+  <div class="chips" id="subjectChips" style="margin:10px 0"></div>
+  <div class="subhead">
+    Selected day ke study blocks
+    <span class="count" id="dayProgress">0 / 0 done</span>
+  </div>
+  <div class="tasks" id="taskList"></div>
+  <div class="actions">
+    <button class="btn primary" id="markAllBtn" type="button">Sab tasks complete mark karo</button>
+    <button class="btn danger" id="clearDayBtn" type="button">Selected day ke ticks clear karo</button>
+  </div>
+  <p class="small muted" style="margin:12px 0 0">“Clear” button sirf <b>selected date</b> ke ticks hataata hai. Confirm popup aayega aur 15 second tak Undo milega. Baaki din safe rahenge.</p>
+</section>
+
+<section class="panel">
+  <h2>3. Complete 50-day roadmap</h2>
+  <p class="sub">Kisi day par tap karo; us din ka topic-wise schedule khul jayega. Din 1–30 naya syllabus, din 31–50 revision + PYQ + mock tests. Har din exact topics — chapter naame nahi, subtopic-level detail.</p>
+  <div class="roadmap" id="roadmap"></div>
+</section>
+
+<section class="panel">
+  <h2>4. Topic tracker — syllabus progress</h2>
+  <div class="notice info">Har chapter multiple topics mein split hai. Chapter expand karke specific topic tick karo. Chapter auto-complete tabhi hota hai jab uske saare topics tick ho jaayen. Common CBSE Class XII Commerce areas ke basis par arranged — final CBSE 2026–27 syllabus aur school pre-board scope se match karna.</div>
+
+  <div class="subhead">Accountancy — first priority <span class="count" id="accCount">0/0</span></div>
+  <div class="tasks checklist" id="accChecklist"></div>
+
+  <div class="subhead">Economics <span class="count" id="ecoCount">0/0</span></div>
+  <div class="tasks checklist" id="ecoChecklist"></div>
+
+  <div class="subhead">Business Studies <span class="count" id="bstCount">0/0</span></div>
+  <div class="tasks checklist" id="bstChecklist"></div>
+
+  <div class="subhead">English Core <span class="count" id="engCount">0/0</span></div>
+  <div class="tasks checklist" id="engChecklist"></div>
+
+  <div class="subhead">Physical Education <span class="count" id="peCount">0/0</span></div>
+  <div class="tasks checklist" id="peChecklist"></div>
+</section>
+
+<section class="panel danger-zone">
+  <h2>⚠️ Data &amp; safety</h2>
+  <p class="sub">Yahan ka button aapka <b>saara</b> saved progress delete karta hai. Pehle confirm popup aayega, phir 15 second tak Undo milega.</p>
+  <div class="actions">
+    <button class="btn danger" id="resetAllBtn" type="button">Sab progress reset karo</button>
+  </div>
+  <p class="small muted" style="margin:12px 0 0">Reset karne se: saare topic ticks + revision ticks clear ho jayenge. Settings (start date, school mode, intensity) safe rahengi. Cloud (Firebase) se bhi delete ho jayega. Cancel karne par kuch bhi change nahi hoga.</p>
+</section>
+
+<div class="footer">
+  50-day plan start date aur school mode se daily schedule generate hota hai. Har chapter ke andar multiple topics (concept → numerical → practice → test) alag-alag units hain — chapter tabhi complete jab sab topics + test tick ho. Progress Firebase Realtime Database mein permanent save hoti hai. "Now" panel tumhe exact next action bataata hai; backlog panel past pending topics ko surface karta hai. Har study block mein 5–10 min break adjacent hai; 9 PM ke baad study schedule nahi ki gayi.
+</div>
+
+</main>
+
+<!-- Confirm modal -->
+<div class="modal-backdrop" id="modalBackdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h3 id="modalTitle">Confirm</h3>
+    <p id="modalMsg"></p>
+    <ul id="modalDetails"></ul>
+    <div class="actions">
+      <button class="btn ghost" id="modalCancel" type="button">Cancel</button>
+      <button class="btn danger" id="modalOk" type="button">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toasts" id="toasts"></div>
+
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+
+<!-- Router: login/role protection -->
+<script src="router.js"></script>
+
+<!-- Load planner only if allowed -->
+<script>
+(() => {
+  'use strict';
+
+  if (!window.Router) {
+    window.location.replace('auth.html');
+    return;
+  }
+
+  if (Router.canLoadPlanner()) {
+    const s = document.createElement('script');
+    s.src = 'script.js';
+    document.body.appendChild(s);
+  }
+})();
+</script>
+
+</body>
+</html>
