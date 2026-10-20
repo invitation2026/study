@@ -544,17 +544,6 @@ function buildDayTasks(dateStr, dayNum) {
         }
       });
     });
-    if (!holiday) {
-      const tuition = (dow === 2 || dow === 4) ? {start:'17:15', end:'19:00', title:'Class 5:15–7:00 PM'} :
-                     dow === 3 ? {start:'19:15', end:'21:00', title:'Class 7:15–9:00 PM'} :
-                     dow === 5 ? {start:'19:00', end:'21:00', title:'Class 7:00–9:00 PM'} : null;
-      if (tuition) {
-        tasks.push({kind:'routine', subject:'Tuition', title: tuition.title, desc:'Class attend karo. Doubts star karo.', start: tuition.start, end: tuition.end, type:'class'});
-      }
-      tasks.push({kind:'routine', subject:'Dinner + rest', title:'Dinner / relax', desc:'9 PM sleep routine maintain.', start:'19:00', end:'20:00', type:'break'});
-    } else {
-      tasks.push({kind:'routine', subject:'Plan tomorrow', title:'Wrap-up', desc:'Tick tracker update, kal ki books ready.', start:'17:00', end:'17:15', type:'routine'});
-    }
   } else {
     const rev = revTasksFor(dayNum);
     if (rev) {
@@ -570,6 +559,24 @@ function buildDayTasks(dateStr, dayNum) {
       });
     }
   }
+
+  // Tabla class schedule (handled independently of school holidays)
+  const tablaHoliday = ($('tablaMode') && $('tablaMode').value === 'holiday') || (state.settings && state.settings.tablaMode === 'holiday');
+  const tuition = (!tablaHoliday && (dow === 2 || dow === 4)) ? {start:'17:15', end:'19:00', title:'Class 5:15–7:00 PM'} :
+                 (!tablaHoliday && dow === 3) ? {start:'19:15', end:'21:00', title:'Class 7:15–9:00 PM'} :
+                 (!tablaHoliday && dow === 5) ? {start:'19:00', end:'21:00', title:'Class 7:00–9:00 PM'} : null;
+  if (tuition) {
+    tasks.push({kind:'routine', subject:'Tuition', title: tuition.title, desc:'Class attend karo. Doubts star karo.', start: tuition.start, end: tuition.end, type:'class'});
+  }
+
+  if (plan) {
+    if (!holiday) {
+      tasks.push({kind:'routine', subject:'Dinner + rest', title:'Dinner / relax', desc:'9 PM sleep routine maintain.', start:'19:00', end:'20:00', type:'break'});
+    } else {
+      tasks.push({kind:'routine', subject:'Plan tomorrow', title:'Wrap-up', desc:'Tick tracker update, kal ki books ready.', start:'17:00', end:'17:15', type:'routine'});
+    }
+  }
+
   return tasks.sort((a,b) => minutes(a.start) - minutes(b.start));
 }
 
