@@ -449,6 +449,50 @@ function parseRange(str) {
   return out;
 }
 
+/* ============ USER & STORAGE HELPERS ============ */
+function getCurrentUser() {
+  try {
+    if (window.Router && window.Router.getSession) {
+      const s = window.Router.getSession();
+      if (s && s.userId) return s;
+    }
+    const raw = localStorage.getItem('study_auth_session_v1');
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (s && s.userId) return s;
+    }
+  } catch(e) {}
+  return { userId: 'abhinav', displayName: 'Abhinav', role: 'abhinav' };
+}
+
+function getUserStoreKey() {
+  const user = getCurrentUser();
+  const uid = (user && user.userId) ? user.userId.toLowerCase() : 'abhinav';
+  return `${STORE}_${uid}`;
+}
+
+function getUserSyncKey() {
+  const user = getCurrentUser();
+  const uid = (user && user.userId) ? user.userId.toLowerCase() : 'abhinav';
+  return `${SYNC_KEY}_${uid}`;
+}
+
+function normalizeStatus(val) {
+  if (!val) return 'attend';
+  const v = String(val).toLowerCase().trim();
+  if (v === 'holiday') return 'holiday';
+  if (v === 'absent' || v === 'skip') return 'skip';
+  if (v === 'attend' || v === 'normal' || v === 'school normal day') return 'attend';
+  return 'attend';
+}
+
+function statusLabel(val) {
+  const norm = normalizeStatus(val);
+  if (norm === 'holiday') return 'Holiday';
+  if (norm === 'skip') return 'Absent';
+  return 'School Normal Day';
+}
+
 /* ============ STATE ============ */
 let state = normalizeState(null);
 function normalizeState(s) {
@@ -457,11 +501,44 @@ function normalizeState(s) {
     topics: (s.topics && typeof s.topics === 'object') ? s.topics : {},
     revs: (s.revs && typeof s.revs === 'object') ? s.revs : {},
     ticks: (s.ticks && typeof s.ticks === 'object') ? s.ticks : {},
+    dailyStatus: (s.dailyStatus && typeof s.dailyStatus === 'object') ? s.dailyStatus : {},
     settings: (s.settings && typeof s.settings === 'object') ? s.settings : {},
     lastUpdated: typeof s.lastUpdated === 'number' ? s.lastUpdated : 0
   };
 }
-function saveLocal() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch(e){} }
+
+function getSchoolStatus(dateStr) {
+  if (!dateStr) {
+    const selEl = $('selectedDate');
+    dateStr = (selEl && selEl.value) ? selEl.value : iso(new Date());
+  }
+  if (state.dailyStatus && state.dailyStatus[dateStr]) {
+    return normalizeStatus(state.dailyStatus[dateStr]);
+  }
+  return 'attend'; // Default is School Normal Day for any new/unset date
+}
+
+function setSchoolStatus(dateStr, status) {
+  if (!dateStr) {
+    const selEl = $('selectedDate');
+    dateStr = (selEl && selEl.value) ? selEl.value : iso(new Date());
+  }
+  const norm = normalizeStatus(status);
+  if (!state.dailyStatus) state.dailyStatus = {};
+  state.dailyStatus[dateStr] = norm;
+  const selEl = $('selectedDate');
+  if (selEl && selEl.value === dateStr) {
+    state.settings.schoolMode = norm;
+  }
+}
+
+function saveLocal() {
+  try {
+    const uKey = getUserStoreKey();
+    localStorage.setItem(uKey, JSON.stringify(state));
+    localStorage.setItem(STORE, JSON.stringify(state));
+  } catch(e){}
+}
 function save() { state.lastUpdated = Date.now(); saveLocal(); scheduleCloudSave(); }
 
 /* ============ SYLLABUS HELPERS ============ */
@@ -505,7 +582,7 @@ function todayDayNum() {
 function buildDayTasks(dateStr, dayNum) {
   const d = dateOf(dateStr);
   const dow = d.getDay();
-  const school = $('schoolMode').value;
+  const school = getSchoolStatus(dateStr);
   const holiday = school !== 'attend';
   const tasks = [];
 
@@ -698,6 +775,10 @@ function renderNow() {
 /* ============ RENDER: DAY ============ */
 function render() {
   const sel = $('selectedDate').value || iso(new Date());
+  const curStatus = getSchoolStatus(sel);
+  if ($('schoolMode') && $('schoolMode').value !== curStatus) {
+    $('schoolMode').value = curStatus;
+  }
   const dayNum = (() => {
     const start = $('startDate').value || '2026-10-18';
     return Math.floor((dateOf(sel) - dateOf(start)) / DAY) + 1;
@@ -927,10 +1008,11 @@ function confirmAction({title, message, details=[], confirmText='Confirm', dange
   });
 }
 
-function snapshot() { return JSON.parse(JSON.stringify({topics: state.topics, revs: state.revs, ticks: state.ticks})); }
+function snapshot() { return JSON.parse(JSON.stringify({topics: state.topics, revs: state.revs, ticks: state.ticks, dailyStatus: state.dailyStatus})); }
 function offerUndo(snap, msg) {
   showToast({ message: msg, type:'info', duration:15000, action: { label:'Undo', onClick: () => {
     state.topics = snap.topics; state.revs = snap.revs; state.ticks = snap.ticks;
+    if (snap.dailyStatus) state.dailyStatus = snap.dailyStatus;
     save(); render();
     showToast({message:'Restore ho gaya.', type:'success', duration:2500});
   }}});
@@ -971,11 +1053,17 @@ function initFirebase() {
 }
 
 function getOrCreateSyncId() {
-  let id = localStorage.getItem(SYNC_KEY);
+  const uSyncKey = getUserSyncKey();
+  let id = localStorage.getItem(uSyncKey);
   if (!id || !/^stu-[a-z0-9]{6,20}$/i.test(id)) {
-    id = 'stu-' + Math.random().toString(36).slice(2,10);
+    const legacy = localStorage.getItem(SYNC_KEY);
+    if (legacy && /^stu-[a-z0-9]{6,20}$/i.test(legacy) && getCurrentUser().userId === 'abhinav') {
+      id = legacy;
+    } else {
+      id = 'stu-' + Math.random().toString(36).slice(2,10);
+    }
+    localStorage.setItem(uSyncKey, id);
     localStorage.setItem(SYNC_KEY, id);
-    showToast({message:`Naya Sync ID banaya: ${id}`, type:'info', duration:6000});
   }
   return id.toLowerCase();
 }
@@ -1004,7 +1092,36 @@ async function doCloudSave() {
   cloudSaveInFlight = true;
   setCloudTag('cloud-saving','Saving…');
   try {
-    await pushToCloud({...state, lastUpdated: state.lastUpdated || Date.now()});
+    const user = getCurrentUser();
+    const payload = {
+      ...state,
+      dailyStatus: state.dailyStatus || {},
+      userId: user.userId || 'abhinav',
+      lastUpdated: state.lastUpdated || Date.now()
+    };
+    await pushToCloud(payload);
+
+    if (user && user.userId && user.userId !== 'guest') {
+      const userRef = db.ref('users/' + user.userId);
+      const updates = {
+        syncId: currentSyncId,
+        lastPlannerSync: Date.now()
+      };
+      if (state.dailyStatus && typeof state.dailyStatus === 'object') {
+        const historyRecords = {};
+        Object.keys(state.dailyStatus).forEach(ds => {
+          const st = normalizeStatus(state.dailyStatus[ds]);
+          historyRecords[ds] = {
+            status: st,
+            label: statusLabel(st),
+            updatedAt: state.lastUpdated || Date.now()
+          };
+        });
+        updates.dailyStatus = historyRecords;
+      }
+      await userRef.update(updates).catch(e => console.warn('User sync error:', e));
+    }
+
     lastSaveError = null;
     setCloudTag('cloud-saved','Saved to cloud');
   } catch (e) {
@@ -1024,6 +1141,32 @@ async function syncFromCloud() {
   syncInProgress = true;
   setCloudTag('cloud-sync','Loading from cloud…');
   try {
+    const user = getCurrentUser();
+    let userHistory = null;
+
+    if (user && user.userId && user.userId !== 'guest') {
+      try {
+        const uSnap = await db.ref('users/' + user.userId).once('value');
+        if (uSnap.exists()) {
+          const uData = uSnap.val() || {};
+          if (uData.syncId && /^stu-[a-z0-9]{6,20}$/i.test(uData.syncId)) {
+            const remoteSync = uData.syncId.toLowerCase();
+            if (remoteSync !== currentSyncId) {
+              currentSyncId = remoteSync;
+              localStorage.setItem(getUserSyncKey(), currentSyncId);
+              localStorage.setItem(SYNC_KEY, currentSyncId);
+              if ($('syncIdView')) $('syncIdView').value = currentSyncId;
+            }
+          }
+          if (uData.dailyStatus && typeof uData.dailyStatus === 'object') {
+            userHistory = uData.dailyStatus;
+          }
+        }
+      } catch(e) {
+        console.warn('Could not read user profile from Firebase:', e);
+      }
+    }
+
     const res = await loadFromCloud(currentSyncId);
     if (!res.ok) {
       cloudLoadFailed = true;
@@ -1033,7 +1176,29 @@ async function syncFromCloud() {
     }
     cloudLoadFailed = false;
     const remote = (res.exists && res.data) ? normalizeState(res.data) : null;
-    const localHas = state.topics && Object.keys(state.topics).length;
+
+    if (userHistory) {
+      if (!remote) {
+        state.dailyStatus = state.dailyStatus || {};
+        Object.keys(userHistory).forEach(ds => {
+          const val = userHistory[ds];
+          const st = (typeof val === 'object' && val && val.status) ? val.status : val;
+          if (st) state.dailyStatus[ds] = normalizeStatus(st);
+        });
+      } else {
+        if (!remote.dailyStatus) remote.dailyStatus = {};
+        Object.keys(userHistory).forEach(ds => {
+          const val = userHistory[ds];
+          const st = (typeof val === 'object' && val && val.status) ? val.status : val;
+          if (st && !remote.dailyStatus[ds]) remote.dailyStatus[ds] = normalizeStatus(st);
+        });
+      }
+    }
+
+    const localHas = (state.topics && Object.keys(state.topics).length) ||
+                     (state.dailyStatus && Object.keys(state.dailyStatus).length) ||
+                     (state.revs && Object.keys(state.revs).length) ||
+                     (state.ticks && Object.keys(state.ticks).length);
 
     if (!remote) {
       if (localHas) scheduleCloudSave();
@@ -1043,11 +1208,14 @@ async function syncFromCloud() {
     if (!localHas) {
       state = remote;
       saveLocal();
+      const sel = ($('selectedDate') && $('selectedDate').value) || iso(new Date());
+      if ($('schoolMode')) $('schoolMode').value = getSchoolStatus(sel);
       render();
       setCloudTag('cloud-saved','Loaded from cloud');
       showToast({message:'Cloud se progress load ho gayi.', type:'success', duration:3000});
       return;
     }
+
     // Merge: true wins
     const merged = normalizeState(null);
     ['topics','revs','ticks'].forEach(k => {
@@ -1057,9 +1225,12 @@ async function syncFromCloud() {
         if (a[key]===true || b[key]===true) merged[k][key] = true;
       });
     });
-    merged.settings = Object.assign({}, remote.settings, state.settings);
+    merged.dailyStatus = Object.assign({}, remote.dailyStatus || {}, state.dailyStatus || {});
+    merged.settings = Object.assign({}, remote.settings || {}, state.settings || {});
     state = merged;
     saveLocal();
+    const sel = ($('selectedDate') && $('selectedDate').value) || iso(new Date());
+    if ($('schoolMode')) $('schoolMode').value = getSchoolStatus(sel);
     render();
     setCloudTag('cloud-saving','Merged — saving');
     scheduleCloudSave();
@@ -1072,10 +1243,24 @@ async function syncFromCloud() {
 /* ============ EVENTS ============ */
 function wireEvents() {
   $('startDate').addEventListener('change', () => { state.settings.startDate = $('startDate').value; save(); render(); });
-  $('selectedDate').addEventListener('change', render);
-  $('schoolMode').addEventListener('change', () => { state.settings.schoolMode = $('schoolMode').value; save(); render(); });
+  $('selectedDate').addEventListener('change', () => {
+    const sel = $('selectedDate').value || iso(new Date());
+    if ($('schoolMode')) $('schoolMode').value = getSchoolStatus(sel);
+    render();
+  });
+  $('schoolMode').addEventListener('change', () => {
+    const sel = $('selectedDate').value || iso(new Date());
+    setSchoolStatus(sel, $('schoolMode').value);
+    save();
+    render();
+  });
   $('intensity').addEventListener('change', () => { state.settings.intensity = $('intensity').value; save(); render(); });
-  $('todayBtn').addEventListener('click', () => { $('selectedDate').value = iso(new Date()); render(); });
+  $('todayBtn').addEventListener('click', () => {
+    const today = iso(new Date());
+    $('selectedDate').value = today;
+    if ($('schoolMode')) $('schoolMode').value = getSchoolStatus(today);
+    render();
+  });
 
   $('markAllBtn').addEventListener('click', async () => {
     const sel = $('selectedDate').value || iso(new Date());
@@ -1155,9 +1340,18 @@ function wireEvents() {
 /* ============ INIT ============ */
 async function init() {
   $('selectedDate').value = iso(new Date());
-  try { const raw = localStorage.getItem(STORE); if (raw) state = normalizeState(JSON.parse(raw)); } catch(e) {}
+  try {
+    const uKey = getUserStoreKey();
+    let raw = localStorage.getItem(uKey);
+    if (!raw) raw = localStorage.getItem(STORE);
+    if (raw) state = normalizeState(JSON.parse(raw));
+  } catch(e) {}
   if (state.settings.startDate) $('startDate').value = state.settings.startDate;
-  if (state.settings.schoolMode) $('schoolMode').value = state.settings.schoolMode;
+
+  const todayIso = $('selectedDate').value;
+  const initialStatus = getSchoolStatus(todayIso);
+  if ($('schoolMode')) $('schoolMode').value = initialStatus;
+
   if (state.settings.intensity) $('intensity').value = state.settings.intensity;
   currentSyncId = getOrCreateSyncId();
   $('syncIdView').value = currentSyncId;
