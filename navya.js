@@ -34,6 +34,11 @@ const SUBJECT_META = {
   break: { label: 'Break', color: '#64748b' }
 };
 
+const NAVYA_FIXED_CLASSES = [
+  { days:[2,4], start:'16:30', end:'19:00', title:'Tabla class', desc:'Tuesday/Thursday 4:30-7:00 PM.' },
+  { days:[3,5], start:'19:00', end:'21:00', title:'Tabla class', desc:'Wednesday/Friday 7:00-9:00 PM.' }
+];
+
 /* ============ NAVYA 50-DAY PLAN ============ */
 const PLAN = [
   /* 1 */ [
@@ -257,6 +262,8 @@ function normalizeState(s) {
   s = s || {};
   return {
     tasks: (s.tasks && typeof s.tasks === 'object') ? s.tasks : {},
+    dailyStatus: (s.dailyStatus && typeof s.dailyStatus === 'object') ? s.dailyStatus : {},
+    backlog: (s.backlog && typeof s.backlog === 'object') ? s.backlog : {},
     settings: (s.settings && typeof s.settings === 'object') ? s.settings : {},
     lastUpdated: typeof s.lastUpdated === 'number' ? s.lastUpdated : 0
   };
@@ -273,10 +280,22 @@ function save() {
 }
 
 function isTaskDone(dateStr, task) {
+  if (task.kind === 'backlog') return state.backlog[task.backlogId]?.status === 'completed';
   return !!state.tasks[taskKey(dateStr, task)];
 }
 
 function setTaskDone(dateStr, task, val) {
+  if (task.kind === 'backlog') {
+    const item = state.backlog[task.backlogId];
+    if (item) {
+      const sourceKey = `d:${item.originalDate}:${item.taskIndex}`;
+      if (val) state.tasks[sourceKey] = true; else delete state.tasks[sourceKey];
+      item.status = val ? 'completed' : 'scheduled';
+      item.updatedAt = Date.now();
+    }
+    save();
+    return;
+  }
   const key = taskKey(dateStr, task);
   if (val) state.tasks[key] = true;
   else delete state.tasks[key];
@@ -286,6 +305,14 @@ function setTaskDone(dateStr, task, val) {
 function taskKey(dateStr, task) {
   if (task.kind === 'study') return `d:${dateStr}:${task.taskIndex}`;
   return `x:${dateStr}:${task.start}:${task.title}`;
+}
+
+function getSchoolStatus(dateStr) {
+  return state.dailyStatus[dateStr] || (dateStr === iso(new Date()) ? state.settings.schoolMode : '') || 'attend';
+}
+
+function getClassBlocks(dow) {
+  return NAVYA_FIXED_CLASSES.filter(block => block.days.includes(dow));
 }
 
 /* ============ NAVYA ROUTINE / WINDOWS ============ */
@@ -344,10 +371,10 @@ function getStudyWindows(dow, mode) {
   ];
 }
 
-function buildDayTasks(dateStr, dayNum) {
+function buildDayTasks(dateStr, dayNum, includeBacklog = true) {
   const d = dateOf(dateStr);
   let dow = d.getDay();
-  let mode = ($('schoolMode') && $('schoolMode').value) || 'attend';
+  let mode = getSchoolStatus(dateStr);
 
   // Sunday ko always holiday treat karo
   if (dow === 0) mode = 'holiday';
@@ -397,30 +424,34 @@ function buildDayTasks(dateStr, dayNum) {
       type: 'school'
     });
 
-    tasks.push({
-      kind: 'routine',
-      subject: 'break',
-      title: 'Rest after school',
-      desc: 'Freshen up, light snack.',
-      start: '16:30',
-      end: '17:00',
-      type: 'break'
-    });
+    if (!getClassBlocks(dow).some(block => window.PlannerScheduling.overlaps(
+      minutes('16:30'), minutes('17:00'), minutes(block.start), minutes(block.end)
+    ))) {
+      tasks.push({
+        kind: 'routine',
+        subject: 'break',
+        title: 'Rest after school',
+        desc: 'Freshen up, light snack.',
+        start: '16:30',
+        end: '17:00',
+        type: 'break'
+      });
+    }
   }
 
-  // Tabla classes
-  if (dow === 2 || dow === 4) {
+  NAVYA_FIXED_CLASSES.filter(block => block.days.includes(dow)).forEach(block => {
     tasks.push({
       kind: 'routine',
       subject: 'class',
-      title: 'Tabla class',
-      desc: 'Tuesday/Thursday 4:30-7:00 PM.',
-      start: '16:30',
-      end: '19:00',
+      title: block.title,
+      desc: block.desc,
+      start: block.start,
+      end: block.end,
       type: 'tabla'
     });
+  });
 
-    if (!holiday) {
+  if ((dow === 2 || dow === 4) && !holiday) {
       tasks.push({
         kind: 'routine',
         subject: 'break',
@@ -430,20 +461,9 @@ function buildDayTasks(dateStr, dayNum) {
         end: '19:15',
         type: 'break'
       });
-    }
   }
 
   if (dow === 3 || dow === 5) {
-    tasks.push({
-      kind: 'routine',
-      subject: 'class',
-      title: 'Tabla class',
-      desc: 'Wednesday/Friday 7:00-9:00 PM.',
-      start: '19:00',
-      end: '21:00',
-      type: 'tabla'
-    });
-
     tasks.push({
       kind: 'routine',
       subject: 'break',
@@ -456,15 +476,19 @@ function buildDayTasks(dateStr, dayNum) {
   }
 
   // Free / sleep
-  tasks.push({
-    kind: 'routine',
-    subject: 'break',
-    title: 'Free time',
-    desc: 'Thoda free time zaroori hai.',
-    start: '20:45',
-    end: '21:00',
-    type: 'free'
-  });
+  if (!getClassBlocks(dow).some(block => window.PlannerScheduling.overlaps(
+    minutes('20:45'), minutes('21:00'), minutes(block.start), minutes(block.end)
+  ))) {
+    tasks.push({
+      kind: 'routine',
+      subject: 'break',
+      title: 'Free time',
+      desc: 'Thoda free time zaroori hai.',
+      start: '20:45',
+      end: '21:00',
+      type: 'free'
+    });
+  }
 
   tasks.push({
     kind: 'routine',
@@ -477,7 +501,7 @@ function buildDayTasks(dateStr, dayNum) {
   });
 
   // Study windows
-  const windows = getStudyWindows(dow, mode).map(w => ({
+  const windows = window.PlannerScheduling.freeSlots(getStudyWindows(dow, mode), getClassBlocks(dow)).map(w => ({
     s: minutes(w[0]),
     e: minutes(w[1]),
     cur: minutes(w[0])
@@ -514,7 +538,137 @@ function buildDayTasks(dateStr, dayNum) {
     tasks.push(item);
   });
 
+  if (includeBacklog) {
+    Object.values(state.backlog).filter(item => item.status === 'scheduled' && item.scheduledDate === dateStr)
+      .forEach(item => tasks.push({
+        kind:'backlog', backlogId:item.id, subject:item.subject, title:item.title,
+        desc:`Previously missed on ${fmt(item.originalDate)}. ${item.desc || ''}`.trim(),
+        start:item.start, end:item.end, taskIndex:item.taskIndex
+      }));
+  }
+
   return tasks.sort((a,b) => startMin(a) - startMin(b));
+}
+
+function backlogWindows(dateStr) {
+  const dow = dateOf(dateStr).getDay();
+  const mode = dow === 0 ? 'holiday' : getSchoolStatus(dateStr);
+  return window.PlannerScheduling.freeSlots(getStudyWindows(dow, mode), getClassBlocks(dow));
+}
+
+function placeBacklogItem(item, dateStr) {
+  if (dateStr < iso(new Date())) return false;
+  const dayNum = Math.floor((dateOf(dateStr) - dateOf($('startDate').value || '2026-10-18')) / DAY) + 1;
+  const occupied = buildDayTasks(dateStr, dayNum, false);
+  Object.values(state.backlog).forEach(other => {
+    if (other.id !== item.id && other.status === 'scheduled' && other.scheduledDate === dateStr) {
+      occupied.push({start:other.start, end:other.end});
+    }
+  });
+  if (dateStr === iso(new Date())) {
+    const now = new Date();
+    occupied.push({start:'00:00', end:hm(now.getHours() * 60 + now.getMinutes())});
+  }
+  const slot = window.PlannerScheduling.findSlot(backlogWindows(dateStr), occupied, item.duration + 5);
+  if (!slot) return false;
+  const changed = item.scheduledDate !== dateStr || item.start !== slot.start || item.end !== hm(minutes(slot.start) + item.duration);
+  item.scheduledDate = dateStr;
+  item.start = slot.start;
+  item.end = hm(minutes(slot.start) + item.duration);
+  item.status = 'scheduled';
+  if (changed) item.updatedAt = Date.now();
+  return true;
+}
+
+function syncBacklog() {
+  const today = iso(new Date());
+  let changed = false;
+  for (let dayNum = 1; dayNum <= 50; dayNum++) {
+    const date = dateForDay(dayNum);
+    if (date >= today) break;
+    buildDayTasks(date, dayNum, false).filter(task => task.kind === 'study')
+      .filter(task => !state.tasks[`d:${date}:${task.taskIndex}`]).forEach(task => {
+        const id = `${date}|d:${date}:${task.taskIndex}`;
+        if (!state.backlog[id]) {
+          state.backlog[id] = {
+            id, kind:'study', originalDate:date, taskIndex:task.taskIndex,
+            subject:task.subject, title:task.title, desc:task.desc,
+            duration:task.mins || 45, status:'pending', updatedAt:Date.now()
+          };
+          changed = true;
+        }
+      });
+  }
+  Object.values(state.backlog).forEach(item => {
+    const completed = !!state.tasks[`d:${item.originalDate}:${item.taskIndex}`];
+    const status = completed ? 'completed' : item.scheduledDate ? 'scheduled' : 'pending';
+    if (item.status !== status) {
+      item.status = status;
+      item.updatedAt = Date.now();
+      changed = true;
+    }
+  });
+  const items = Object.values(state.backlog);
+  items.filter(item => item.status === 'scheduled').forEach(item => {
+    const previous = `${item.scheduledDate}|${item.start}|${item.end}`;
+    if (!placeBacklogItem(item, item.scheduledDate)) {
+      item.status = 'pending';
+      delete item.scheduledDate;
+      delete item.start;
+      delete item.end;
+      changed = true;
+    } else if (previous !== `${item.scheduledDate}|${item.start}|${item.end}`) {
+      changed = true;
+    }
+  });
+  const candidates = [];
+  for (let offset = 0; offset < 120; offset++) {
+    const date = iso(new Date(dateOf(today).getTime() + offset * DAY));
+    const dow = dateOf(date).getDay();
+    const priority = dow === 0 ? 1 : getSchoolStatus(date) === 'attend' ? 0 : 2;
+    candidates.push({date, priority});
+  }
+  candidates.sort((a,b) => a.priority - b.priority || a.date.localeCompare(b.date));
+  items.filter(item => item.status === 'pending').forEach(item => {
+    for (const candidate of candidates) {
+      if (placeBacklogItem(item, candidate.date)) {
+        changed = true;
+        break;
+      }
+    }
+  });
+  if (changed) save();
+}
+
+function renderBacklog() {
+  const host = $('backlogList');
+  if (!host) return;
+  host.replaceChildren();
+  const items = Object.values(state.backlog).filter(item => item.status !== 'completed')
+    .sort((a,b) => a.originalDate.localeCompare(b.originalDate));
+  if (!items.length) {
+    host.textContent = 'Abhi koi missed study block nahi hai.';
+    return;
+  }
+  items.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'task';
+    row.style.gridTemplateColumns = 'minmax(0,1fr) minmax(190px,260px)';
+    row.innerHTML = `<div></div><div class="taskbody"><div class="tasktitle">${esc(item.title)}</div>` +
+      `<div class="desc">${esc(subjectLabel(item.subject))} · Missed on ${esc(fmt(item.originalDate))}` +
+      `${item.scheduledDate ? ` · Scheduled ${esc(fmt(item.scheduledDate))} at ${esc(pretty(item.start))}` : ' · No suitable slot yet'}</div></div>` +
+      `<div class="field"><label>Reschedule date</label><input type="date" value="${esc(item.scheduledDate || iso(new Date()))}"><button class="btn" type="button">Shift</button></div>`;
+    const input = row.querySelector('input');
+    row.querySelector('button').addEventListener('click', () => {
+      if (!placeBacklogItem(item, input.value)) {
+        showToast({message:'Is date par protected blocks ke saath suitable free slot nahi hai.', type:'warning'});
+        return;
+      }
+      save();
+      render();
+    });
+    host.appendChild(row);
+  });
 }
 
 /* ============ SMART NEXT ============ */
@@ -527,7 +681,7 @@ function smartNext() {
     const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
 
     const current = todayTasks.find(t =>
-      t.kind === 'study' &&
+      (t.kind === 'study' || t.kind === 'backlog') &&
       nowMin >= minutes(t.start) &&
       nowMin < minutes(t.end) &&
       !isTaskDone(today, t)
@@ -535,34 +689,17 @@ function smartNext() {
 
     if (current) return { type: 'current', date: today, dayNum: todayNum, task: current };
 
-    const nextPending = todayTasks.find(t => t.kind === 'study' && !isTaskDone(today, t));
+    const nextPending = todayTasks.find(t => (t.kind === 'study' || t.kind === 'backlog') && !isTaskDone(today, t));
     if (nextPending) return { type: 'next-today', date: today, dayNum: todayNum, task: nextPending };
   }
 
-  // backlog
-  for (let day = 1; day < Math.min(todayNum, 51); day++) {
-    const date = dateForDay(day);
-    const dayTasks = PLAN[day - 1] || [];
-
-    for (let i = 0; i < dayTasks.length; i++) {
-      const key = `d:${date}:${i}`;
-      if (!state.tasks[key]) {
-        const t = dayTasks[i];
-        return {
-          type: 'backlog',
-          date,
-          dayNum: day,
-          task: {
-            kind: 'study',
-            subject: t[0],
-            title: t[1],
-            desc: t[2],
-            start: '—',
-            end: '—'
-          }
-        };
-      }
-    }
+  const backlog = Object.values(state.backlog).find(item => item.status !== 'completed');
+  if (backlog) {
+    return {
+      type:'backlog', date:backlog.originalDate, scheduledDate:backlog.scheduledDate,
+      dayNum:Math.floor((dateOf(backlog.originalDate) - dateOf($('startDate').value || '2026-10-18')) / DAY) + 1,
+      task:{kind:'backlog', subject:backlog.subject, title:backlog.title, desc:backlog.desc, start:backlog.start || '—', end:backlog.end || '—'}
+    };
   }
 
   // tomorrow preview
@@ -614,13 +751,14 @@ function renderNow() {
 
     const today = iso(new Date());
     const todayTasks = buildDayTasks(today, todayDayNum());
-    const after = todayTasks.find(t => t.kind === 'study' && !isTaskDone(today, t) && t !== n.task && startMin(t) >= startMin(n.task));
+    const after = todayTasks.find(t => (t.kind === 'study' || t.kind === 'backlog') && !isTaskDone(today, t) && t !== n.task && startMin(t) >= startMin(n.task));
 
     nextT.textContent = after ? after.title : '—';
     nextD.textContent = after ? `${subjectLabel(after.subject)} · ${after.desc}` : 'Aaj ke baaki blocks niche dekh lo.';
   } else if (n.type === 'backlog') {
     curTitle.textContent = '⚠ BACKLOG: ' + n.task.title;
-    curDesc.textContent = `${subjectLabel(n.task.subject)} · Day ${n.dayNum} (${fmt(n.date)}) ka pending topic. Pehle ise finish karo.`;
+    curDesc.textContent = `${subjectLabel(n.task.subject)} · Missed on ${fmt(n.date)}. ` +
+      (n.scheduledDate ? `Rescheduled ${fmt(n.scheduledDate)} at ${pretty(n.task.start)}.` : 'No suitable time found yet.');
     nextT.textContent = 'Phir: aaj ka plan';
     nextD.textContent = 'Backlog clear hone ke baad today ka plan continue karo.';
   } else if (n.type === 'tomorrow') {
@@ -638,6 +776,8 @@ function renderNow() {
 
 function render() {
   const sel = ($('selectedDate') && $('selectedDate').value) || iso(new Date());
+  if ($('schoolMode') && $('schoolMode').value !== getSchoolStatus(sel)) $('schoolMode').value = getSchoolStatus(sel);
+  syncBacklog();
   const start = ($('startDate') && $('startDate').value) || '2026-10-18';
   const dayNum = Math.floor((dateOf(sel) - dateOf(start)) / DAY) + 1;
 
@@ -645,8 +785,9 @@ function render() {
   if ($('todayHeading')) $('todayHeading').textContent = `${fmt(sel)} — Day ${Math.max(1, Math.min(50, dayNum))} / 50`;
   if ($('dayStat')) $('dayStat').textContent = dayNum >= 1 && dayNum <= 50 ? `${dayNum}/50` : dayNum < 1 ? 'Before' : 'Done';
 
-  const tasks = (dayNum >= 1 && dayNum <= 50) ? buildDayTasks(sel, dayNum) : [];
-  const studyTasks = tasks.filter(t => t.kind === 'study');
+  const hasBacklog = Object.values(state.backlog).some(item => item.status === 'scheduled' && item.scheduledDate === sel);
+  const tasks = (dayNum >= 1 && dayNum <= 50) || hasBacklog ? buildDayTasks(sel, dayNum) : [];
+  const studyTasks = tasks.filter(t => t.kind === 'study' || t.kind === 'backlog');
   const doneCount = studyTasks.filter(t => isTaskDone(sel, t)).length;
 
   if ($('dayProgress')) $('dayProgress').textContent = `${doneCount} / ${studyTasks.length} study blocks done`;
@@ -663,7 +804,7 @@ function render() {
     tasks.forEach(task => {
       const done = isTaskDone(sel, task);
       const el = document.createElement('div');
-      el.className = 'task' + (done ? ' done' : '') + (task.kind === 'study' ? ' topic-task' : '');
+      el.className = 'task' + (done ? ' done' : '') + (task.kind === 'study' || task.kind === 'backlog' ? ' topic-task' : '');
       el.dataset.subject = task.subject;
 
       const timeStr = task.start === '—'
@@ -701,6 +842,7 @@ function render() {
 
   renderRoadmap();
   renderStats();
+  renderBacklog();
   renderNow();
 }
 
@@ -762,16 +904,7 @@ function renderStats() {
   if ($('progressStat')) $('progressStat').textContent = pct + '%';
   if ($('progressBar')) $('progressBar').style.width = pct + '%';
 
-  const todayNum = todayDayNum();
-  let backlog = 0;
-
-  for (let day = 1; day < Math.min(todayNum, 51); day++) {
-    const date = dateForDay(day);
-    const dayTasks = PLAN[day - 1] || [];
-    for (let i = 0; i < dayTasks.length; i++) {
-      if (!state.tasks[`d:${date}:${i}`]) backlog++;
-    }
-  }
+  const backlog = Object.values(state.backlog).filter(item => item.status !== 'completed').length;
 
   if ($('statusStat')) $('statusStat').textContent = backlog ? `${backlog} pending` : 'On track';
 }
@@ -892,7 +1025,7 @@ function confirmAction({ title, message, details = [], confirmText = 'Confirm', 
 }
 
 function snapshot() {
-  return JSON.parse(JSON.stringify({ tasks: state.tasks }));
+  return JSON.parse(JSON.stringify({ tasks: state.tasks, dailyStatus:state.dailyStatus, backlog:state.backlog }));
 }
 
 function offerUndo(snap, msg) {
@@ -904,6 +1037,8 @@ function offerUndo(snap, msg) {
       label: 'Undo',
       onClick: () => {
         state.tasks = snap.tasks;
+        state.dailyStatus = snap.dailyStatus;
+        state.backlog = snap.backlog;
         save();
         render();
         showToast({ message: 'Restore ho gaya.', type: 'success', duration: 2500 });
@@ -916,8 +1051,10 @@ function offerUndo(snap, msg) {
 let db = null;
 let cloudReady = false;
 let cloudSaveTimer = null;
+let cloudRetryTimer = null;
 let cloudSaveInFlight = false;
 let cloudSavePending = false;
+let cloudSaveErrorNotified = false;
 let cloudLoadFailed = false;
 let syncInProgress = false;
 let currentSyncId = '';
@@ -973,13 +1110,32 @@ function loadFromCloud(id) {
 
 function pushToCloud(payload) {
   if (!db) return Promise.reject(new Error('DB not init'));
-  return cloudRef(currentSyncId).set(payload);
+  return cloudRef(currentSyncId).update(payload);
+}
+
+function mergeBacklog(local, remote) {
+  const merged = {};
+  [...Object.values(remote || {}), ...Object.values(local || {})].forEach(item => {
+    const previous = merged[item.id];
+    if (!previous || item.status === 'completed' ||
+        (previous.status !== 'completed' && (item.updatedAt || 0) >= (previous.updatedAt || 0))) merged[item.id] = item;
+  });
+  return merged;
 }
 
 function scheduleCloudSave() {
-  if (!cloudReady || !db) return;
+  if (!cloudReady || !db) {
+    setCloudTag('cloud-off', 'Cloud unavailable — not saved');
+    return;
+  }
   if (cloudLoadFailed) {
     setCloudTag('cloud-error', 'Cloud not synced');
+    showToast({
+      message: 'Cloud load fail — Firebase sync ke bina changes cloud mein save nahi honge.',
+      type: 'error',
+      duration: 8000,
+      action: { label:'Retry sync', onClick:() => { cloudLoadFailed = false; syncFromCloud(); } }
+    });
     return;
   }
 
@@ -1004,17 +1160,37 @@ async function doCloudSave() {
   try {
     await pushToCloud({ ...state, lastUpdated: state.lastUpdated || Date.now() });
     lastSaveError = null;
+    if (cloudRetryTimer) {
+      clearTimeout(cloudRetryTimer);
+      cloudRetryTimer = null;
+    }
+    cloudSaveErrorNotified = false;
     setCloudTag('cloud-saved', 'Saved to cloud');
   } catch (e) {
     lastSaveError = e;
     console.warn('Cloud save failed:', e);
     setCloudTag('cloud-error', 'Save failed');
-    showToast({
-      message: 'Cloud save fail — data browser cache mein safe hai. Retry karo.',
-      type: 'error',
-      duration: 8000,
-      action: { label: 'Retry', onClick: () => doCloudSave() }
-    });
+    if (!cloudSaveErrorNotified) {
+      cloudSaveErrorNotified = true;
+      showToast({
+        message: 'Cloud save fail — data browser cache mein safe hai. Retry karo.',
+        type: 'error',
+        duration: 8000,
+        action: { label: 'Retry', onClick: () => {
+          if (cloudRetryTimer) {
+            clearTimeout(cloudRetryTimer);
+            cloudRetryTimer = null;
+          }
+          doCloudSave();
+        } }
+      });
+    }
+    if (!cloudRetryTimer) {
+      cloudRetryTimer = setTimeout(() => {
+        cloudRetryTimer = null;
+        doCloudSave();
+      }, 5000);
+    }
   } finally {
     cloudSaveInFlight = false;
     if (cloudSavePending) {
@@ -1035,13 +1211,20 @@ async function syncFromCloud() {
     if (!res.ok) {
       cloudLoadFailed = true;
       setCloudTag('cloud-error', 'Load failed');
-      showToast({ message: 'Cloud load fail — save rok diya data safe rakhne ke liye.', type: 'error', duration: 8000 });
+      showToast({
+        message: 'Cloud load fail — Firebase sync ke bina changes cloud mein save nahi honge.',
+        type: 'error',
+        duration: 8000,
+        action: { label:'Retry sync', onClick:() => { cloudLoadFailed = false; syncFromCloud(); } }
+      });
       return;
     }
 
     cloudLoadFailed = false;
     const remote = (res.exists && res.data) ? normalizeState(res.data) : null;
-    const localHas = state.tasks && Object.keys(state.tasks).length;
+    const localHas = (state.tasks && Object.keys(state.tasks).length) ||
+      (state.dailyStatus && Object.keys(state.dailyStatus).length) ||
+      (state.backlog && Object.keys(state.backlog).length);
 
     if (!remote) {
       if (localHas) scheduleCloudSave();
@@ -1068,6 +1251,8 @@ async function syncFromCloud() {
       if (a[key] === true || b[key] === true) merged.tasks[key] = true;
     });
 
+    merged.dailyStatus = Object.assign({}, remote.dailyStatus, state.dailyStatus);
+    merged.backlog = mergeBacklog(state.backlog, remote.backlog);
     merged.settings = Object.assign({}, remote.settings, state.settings);
     state = merged;
 
@@ -1082,6 +1267,13 @@ async function syncFromCloud() {
 }
 
 /* ============ EVENTS ============ */
+window.addEventListener('online', () => {
+  if (cloudReady && db) {
+    cloudLoadFailed = false;
+    syncFromCloud();
+  }
+});
+
 function wireEvents() {
   if ($('startDate')) {
     $('startDate').addEventListener('change', () => {
@@ -1091,10 +1283,15 @@ function wireEvents() {
     });
   }
 
-  if ($('selectedDate')) $('selectedDate').addEventListener('change', render);
+  if ($('selectedDate')) $('selectedDate').addEventListener('change', () => {
+    if ($('schoolMode')) $('schoolMode').value = getSchoolStatus($('selectedDate').value);
+    render();
+  });
 
   if ($('schoolMode')) {
     $('schoolMode').addEventListener('change', () => {
+      const selected = ($('selectedDate') && $('selectedDate').value) || iso(new Date());
+      state.dailyStatus[selected] = $('schoolMode').value;
       state.settings.schoolMode = $('schoolMode').value;
       save();
       render();
@@ -1123,7 +1320,7 @@ function wireEvents() {
       const dayNum = Math.floor((dateOf(sel) - dateOf(start)) / DAY) + 1;
       if (dayNum < 1 || dayNum > 50) return;
 
-      const tasks = buildDayTasks(sel, dayNum).filter(t => t.kind === 'study');
+      const tasks = buildDayTasks(sel, dayNum).filter(t => t.kind === 'study' || t.kind === 'backlog');
       if (!tasks.length) return;
 
       const ok = await confirmAction({
@@ -1177,7 +1374,7 @@ function wireEvents() {
 
   if ($('resetAllBtn')) {
     $('resetAllBtn').addEventListener('click', async () => {
-      const count = Object.keys(state.tasks).length;
+      const count = Object.keys(state.tasks).length + Object.keys(state.backlog).length;
       if (!count) {
         showToast({ message: 'Kuch reset karne ko nahi.', type: 'info' });
         return;
@@ -1195,6 +1392,7 @@ function wireEvents() {
 
       const snap = snapshot();
       state.tasks = {};
+      state.backlog = {};
       save();
       render();
       offerUndo(snap, 'Reset done. Undo?');
@@ -1291,7 +1489,7 @@ async function init() {
   } catch (e) {}
 
   if (state.settings.startDate && $('startDate')) $('startDate').value = state.settings.startDate;
-  if (state.settings.schoolMode && $('schoolMode')) $('schoolMode').value = state.settings.schoolMode;
+  if ($('schoolMode')) $('schoolMode').value = getSchoolStatus($('selectedDate').value);
   if (state.settings.intensity && $('intensity')) $('intensity').value = state.settings.intensity;
 
   currentSyncId = getOrCreateSyncId();

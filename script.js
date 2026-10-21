@@ -431,6 +431,7 @@ const dayName = d => ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday
 const fmt = s => dateOf(s).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
 const minutes = s => { const [h,m]=s.split(':').map(Number); return h*60+m; };
 const hm = n => `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;
+const taskStartMin = task => !task.start || task.start === '—' ? Number.MAX_SAFE_INTEGER : minutes(task.start);
 const pretty = s => { const [h,m]=s.split(':').map(Number); return new Date(2000,0,1,h,m).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit',hour12:true}); };
 const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -502,6 +503,7 @@ function normalizeState(s) {
     revs: (s.revs && typeof s.revs === 'object') ? s.revs : {},
     ticks: (s.ticks && typeof s.ticks === 'object') ? s.ticks : {},
     dailyStatus: (s.dailyStatus && typeof s.dailyStatus === 'object') ? s.dailyStatus : {},
+    backlog: (s.backlog && typeof s.backlog === 'object') ? s.backlog : {},
     settings: (s.settings && typeof s.settings === 'object') ? s.settings : {},
     lastUpdated: typeof s.lastUpdated === 'number' ? s.lastUpdated : 0
   };
@@ -579,7 +581,7 @@ function todayDayNum() {
 }
 
 /* ============ SCHEDULE BUILDER ============ */
-function buildDayTasks(dateStr, dayNum) {
+function buildDayTasks(dateStr, dayNum, includeBacklog = true) {
   const d = dateOf(dateStr);
   const dow = d.getDay();
   const school = getSchoolStatus(dateStr);
@@ -593,7 +595,34 @@ function buildDayTasks(dateStr, dayNum) {
     tasks.push({kind:'routine', subject:'Break', title:'Lunch + rest', desc:'Freshen up, lunch, rest.', start:'14:00', end:'15:30', type:'break'});
   }
 
-  let t = holiday ? minutes('09:00') : minutes('15:30');
+  const tablaHoliday = ($('tablaMode') && $('tablaMode').value === 'holiday') || (state.settings && state.settings.tablaMode === 'holiday');
+  const tuition = (!tablaHoliday && (dow === 2 || dow === 4)) ? {start:'17:15', end:'19:00', title:'Class 5:15–7:00 PM'} :
+                 (!tablaHoliday && dow === 3) ? {start:'19:15', end:'21:00', title:'Class 7:15–9:00 PM'} :
+                 (!tablaHoliday && dow === 5) ? {start:'19:00', end:'21:00', title:'Class 7:00–9:00 PM'} : null;
+  const dinner = !holiday
+    ? ((dow === 3 || dow === 5) ? {start:'18:00', end:'19:00'} : {start:'19:00', end:'20:00'})
+    : null;
+  const studyWindows = holiday ? [['09:00','21:00']] : [['15:30','21:00']];
+  const occupied = [
+    ...(tuition ? [tuition] : []),
+    ...(dinner ? [dinner] : []),
+    ...tasks.filter(task => task.start && task.end)
+  ];
+  const addStudyTask = task => {
+    const duration = task.duration;
+    const slot = window.PlannerScheduling.findSlot(studyWindows, occupied, duration + 5);
+    if (!slot) {
+      task.start = '—';
+      task.end = '—';
+      task.overflow = true;
+    } else {
+      task.start = slot.start;
+      task.end = hm(minutes(slot.start) + duration);
+      occupied.push({start:slot.start, end:slot.end});
+    }
+    delete task.duration;
+    tasks.push(task);
+  };
   const plan = dayPlanFor(dayNum);
 
   if (plan) {
@@ -601,60 +630,65 @@ function buildDayTasks(dateStr, dayNum) {
     order.forEach(sub => {
       const topicIds = plan[sub] || [];
       if (!topicIds.length) return;
-      topicIds.forEach((tid, i) => {
+      topicIds.forEach(tid => {
         const info = getChapterByTopicId(tid);
         if (!info) return;
         const mins = info.topic[2] || 30;
-        let endMin = t + mins;
-        if (endMin > 21*60) endMin = Math.min(endMin, 21*60);
-        tasks.push({
+        addStudyTask({
           kind:'topic',
           subject: info.sub === 'acc' ? 'Accountancy' : info.sub === 'eco' ? 'Economics' : info.sub === 'bst' ? 'Business Studies' : info.sub === 'eng' ? 'English Core' : 'Physical Education',
           title: info.chapterName.split(' — ')[0].split('(')[0].trim() + ' — ' + info.topic[0],
           desc: info.topic[1],
-          start: hm(t), end: hm(endMin), topicId: tid, type:'study'
+          start:'—', end:'—', topicId: tid, type:'study', duration: mins
         });
-        t = endMin + 5;
-        if (sub === 'acc' && i === topicIds.length - 1 && t < 21*60 - 30) {
-          tasks.push({kind:'routine', subject:'Break', title:'Short break', desc:'Stretch, water, eyes rest.', start: hm(t), end: hm(t+10), type:'break'});
-          t += 15;
-        }
       });
+      if (sub === 'acc' && tasks.some(task => task.kind === 'topic' && task.subject === 'Accountancy' && task.start !== '—')) {
+        const breakSlot = window.PlannerScheduling.findSlot(studyWindows, occupied, 15);
+        if (breakSlot) {
+          tasks.push({kind:'routine', subject:'Break', title:'Short break', desc:'Stretch, water, eyes rest.', start:breakSlot.start, end:hm(minutes(breakSlot.start) + 10), type:'break'});
+          occupied.push({start:breakSlot.start, end:breakSlot.end});
+        }
+      }
     });
   } else {
     const rev = revTasksFor(dayNum);
     if (rev) {
       rev.forEach((r, i) => {
         if (!r[1]) return;
-        let endMin = t + r[1];
-        if (endMin > 21*60) endMin = 21*60;
-        tasks.push({
+        addStudyTask({
           kind:'rev', subject:'Revision', title: r[0], desc: 'Focus, time-bound. Black Book mistakes.',
-          start: hm(t), end: hm(endMin), revIdx: i, type:'revision'
+          start:'—', end:'—', revIdx: i, type:'revision', duration: r[1]
         });
-        t = endMin + 10;
       });
     }
   }
 
-  // Tabla class schedule (handled independently of school holidays)
-  const tablaHoliday = ($('tablaMode') && $('tablaMode').value === 'holiday') || (state.settings && state.settings.tablaMode === 'holiday');
-  const tuition = (!tablaHoliday && (dow === 2 || dow === 4)) ? {start:'17:15', end:'19:00', title:'Class 5:15–7:00 PM'} :
-                 (!tablaHoliday && dow === 3) ? {start:'19:15', end:'21:00', title:'Class 7:15–9:00 PM'} :
-                 (!tablaHoliday && dow === 5) ? {start:'19:00', end:'21:00', title:'Class 7:00–9:00 PM'} : null;
   if (tuition) {
     tasks.push({kind:'routine', subject:'Tuition', title: tuition.title, desc:'Class attend karo. Doubts star karo.', start: tuition.start, end: tuition.end, type:'class'});
   }
 
   if (plan) {
     if (!holiday) {
-      tasks.push({kind:'routine', subject:'Dinner + rest', title:'Dinner / relax', desc:'9 PM sleep routine maintain.', start:'19:00', end:'20:00', type:'break'});
+      tasks.push({kind:'routine', subject:'Dinner + rest', title:'Dinner / relax', desc:'9 PM sleep routine maintain.', start:dinner.start, end:dinner.end, type:'break'});
     } else {
       tasks.push({kind:'routine', subject:'Plan tomorrow', title:'Wrap-up', desc:'Tick tracker update, kal ki books ready.', start:'17:00', end:'17:15', type:'routine'});
     }
   }
 
-  return tasks.sort((a,b) => minutes(a.start) - minutes(b.start));
+  if (includeBacklog) {
+    Object.values(state.backlog).filter(item => item.status === 'scheduled' && item.scheduledDate === dateStr)
+      .forEach(item => tasks.push({
+        kind:'backlog', backlogId:item.id, subject:item.subject,
+        title:item.title, desc:`Previously missed on ${fmt(item.originalDate)}. ${item.desc || ''}`.trim(),
+        start:item.start, end:item.end, type:'study'
+      }));
+  }
+
+  return tasks.sort((a,b) => taskStartMin(a) - taskStartMin(b));
+}
+
+function planForDate(dayNum) {
+  return dayPlanFor(dayNum) || revTasksFor(dayNum);
 }
 
 /* ============ TASK TICK KEY ============ */
@@ -664,12 +698,25 @@ function taskKey(dateStr, task) {
   return `x:${dateStr}:${task.start}:${task.title}`;
 }
 function isTaskDone(dateStr, task) {
+  if (task.kind === 'backlog') return state.backlog[task.backlogId]?.status === 'completed';
   if (task.kind === 'topic') return isTopicDone(task.topicId);
   if (task.kind === 'rev') return !!state.revs[taskKey(dateStr, task)];
   return !!state.ticks[taskKey(dateStr, task)];
 }
 function setTaskDone(dateStr, task, val) {
-  if (task.kind === 'topic') {
+  if (task.kind === 'backlog') {
+    const item = state.backlog[task.backlogId];
+    if (item) {
+      if (item.kind === 'topic') {
+        if (val) state.topics[item.topicId] = true; else delete state.topics[item.topicId];
+      } else if (item.kind === 'rev') {
+        const key = `r:${item.originalDate}:${item.revIdx}`;
+        if (val) state.revs[key] = true; else delete state.revs[key];
+      }
+      item.status = val ? 'completed' : 'scheduled';
+      item.updatedAt = Date.now();
+    }
+  } else if (task.kind === 'topic') {
     if (val) state.topics[task.topicId] = true; else delete state.topics[task.topicId];
   } else if (task.kind === 'rev') {
     if (val) state.revs[taskKey(dateStr, task)] = true; else delete state.revs[taskKey(dateStr, task)];
@@ -677,6 +724,144 @@ function setTaskDone(dateStr, task, val) {
     if (val) state.ticks[taskKey(dateStr, task)] = true; else delete state.ticks[taskKey(dateStr, task)];
   }
   save();
+}
+
+function sourceIsDone(item) {
+  if (item.kind === 'topic') return isTopicDone(item.topicId);
+  if (item.kind === 'rev') return !!state.revs[`r:${item.originalDate}:${item.revIdx}`];
+  return false;
+}
+
+function backlogWindows(dateStr) {
+  return getSchoolStatus(dateStr) === 'attend' ? [['15:30','21:00']] : [['09:00','21:00']];
+}
+
+function placeBacklogItem(item, dateStr) {
+  const today = iso(new Date());
+  if (dateStr < today) return false;
+  const date = dateOf(dateStr);
+  const dayNum = Math.floor((date - dateOf($('startDate').value || '2026-10-18')) / DAY) + 1;
+  const occupied = buildDayTasks(dateStr, dayNum, false);
+  Object.values(state.backlog).forEach(other => {
+    if (other.id !== item.id && other.status === 'scheduled' && other.scheduledDate === dateStr) {
+      occupied.push({start:other.start, end:other.end});
+    }
+  });
+  if (dateStr === iso(new Date())) {
+    const now = new Date();
+    occupied.push({start:'00:00', end:hm(now.getHours() * 60 + now.getMinutes())});
+  }
+  const duration = Math.max(1, Number(item.duration) || 30);
+  const slot = window.PlannerScheduling.findSlot(backlogWindows(dateStr), occupied, duration + 5);
+  if (!slot) return false;
+  const changed = item.scheduledDate !== dateStr || item.start !== slot.start || item.end !== hm(minutes(slot.start) + duration);
+  item.scheduledDate = dateStr;
+  item.start = slot.start;
+  item.end = hm(minutes(slot.start) + duration);
+  item.status = 'scheduled';
+  if (changed) item.updatedAt = Date.now();
+  return true;
+}
+
+function syncBacklog() {
+  const today = iso(new Date());
+  const startStr = $('startDate').value || '2026-10-18';
+  let changed = false;
+
+  for (let dayNum = 1; dayNum <= 50; dayNum++) {
+    const date = iso(new Date(dateOf(startStr).getTime() + (dayNum - 1) * DAY));
+    if (date >= today) break;
+    buildDayTasks(date, dayNum, false).filter(task => task.kind === 'topic' || task.kind === 'rev')
+      .filter(task => !isTaskDone(date, task)).forEach(task => {
+        const id = `${date}|${taskKey(date, task)}`;
+        if (!state.backlog[id]) {
+          state.backlog[id] = {
+            id, kind:task.kind, originalDate:date, topicId:task.topicId, revIdx:task.revIdx,
+            subject:task.subject, title:task.title, desc:task.desc,
+            duration:task.kind === 'topic' ? (getChapterByTopicId(task.topicId)?.topic[2] || 30) : (revTasksFor(dayNum)?.[task.revIdx]?.[1] || 30),
+            status:'pending', updatedAt:Date.now()
+          };
+          changed = true;
+        }
+      });
+  }
+
+  const items = Object.values(state.backlog);
+  items.forEach(item => {
+    const completed = sourceIsDone(item);
+    const status = completed ? 'completed' : item.scheduledDate ? 'scheduled' : 'pending';
+    if (item.status !== status) {
+      item.status = status;
+      item.updatedAt = Date.now();
+      changed = true;
+    }
+  });
+
+  items.filter(item => item.status === 'scheduled').forEach(item => {
+    const previous = `${item.scheduledDate}|${item.start}|${item.end}`;
+    if (!placeBacklogItem(item, item.scheduledDate)) {
+      item.status = 'pending';
+      delete item.scheduledDate;
+      delete item.start;
+      delete item.end;
+      changed = true;
+    } else if (previous !== `${item.scheduledDate}|${item.start}|${item.end}`) {
+      changed = true;
+    }
+  });
+
+  const pending = items.filter(item => item.status === 'pending');
+  const candidates = [];
+  for (let offset = 0; offset < 120; offset++) {
+    const date = iso(new Date(dateOf(today).getTime() + offset * DAY));
+    const dow = dateOf(date).getDay();
+    const status = getSchoolStatus(date);
+    const priority = dow === 0 ? 1 : status === 'attend' ? 0 : 2;
+    candidates.push({date, priority});
+  }
+  candidates.sort((a,b) => a.priority - b.priority || a.date.localeCompare(b.date));
+
+  pending.forEach(item => {
+    for (const candidate of candidates) {
+      if (placeBacklogItem(item, candidate.date)) {
+        changed = true;
+        break;
+      }
+    }
+  });
+
+  if (changed) save();
+}
+
+function renderBacklog() {
+  const host = $('backlogList');
+  if (!host) return;
+  host.replaceChildren();
+  const items = Object.values(state.backlog).filter(item => item.status !== 'completed')
+    .sort((a,b) => a.originalDate.localeCompare(b.originalDate));
+  if (!items.length) {
+    host.textContent = 'Abhi koi missed study block nahi hai.';
+    return;
+  }
+  items.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'task';
+    row.style.gridTemplateColumns = 'minmax(0,1fr) minmax(190px,260px)';
+    row.innerHTML = `<div></div><div class="taskbody"><div class="tasktitle">${esc(item.title)}</div>` +
+      `<div class="desc">${esc(item.subject)} · Missed on ${esc(fmt(item.originalDate))}` +
+      `${item.scheduledDate ? ` · Scheduled ${esc(fmt(item.scheduledDate))} at ${esc(pretty(item.start))}` : ' · No suitable slot yet'}</div></div>` +
+      `<div class="field"><label>Reschedule date</label><input type="date" value="${esc(item.scheduledDate || iso(new Date()))}"><button class="btn" type="button">Shift</button></div>`;
+    const input = row.querySelector('input');
+    row.querySelector('button').addEventListener('click', () => {
+      if (!placeBacklogItem(item, input.value)) {
+        showToast({message:'Is date par protected blocks ke saath suitable free slot nahi hai.', type:'warning'});
+        return;
+      }
+      save();
+      render();
+    });
+    host.appendChild(row);
+  });
 }
 
 /* ============ SMART DIRECTION ============ */
@@ -774,6 +959,7 @@ function renderNow() {
 
 /* ============ RENDER: DAY ============ */
 function render() {
+  syncBacklog();
   const sel = $('selectedDate').value || iso(new Date());
   const curStatus = getSchoolStatus(sel);
   if ($('schoolMode') && $('schoolMode').value !== curStatus) {
@@ -788,8 +974,9 @@ function render() {
   $('todayHeading').textContent = `${fmt(sel)} — Day ${Math.max(1,Math.min(50,dayNum))} / 50`;
   $('dayStat').textContent = dayNum >= 1 && dayNum <= 50 ? `${dayNum}/50` : dayNum < 1 ? 'Before' : 'Done';
 
-  const tasks = (dayNum >= 1 && dayNum <= 50) ? buildDayTasks(sel, dayNum) : [];
-  const studyTasks = tasks.filter(t => t.kind === 'topic' || t.kind === 'rev');
+  const hasBacklog = Object.values(state.backlog).some(item => item.status === 'scheduled' && item.scheduledDate === sel);
+  const tasks = (dayNum >= 1 && dayNum <= 50) || hasBacklog ? buildDayTasks(sel, dayNum) : [];
+  const studyTasks = tasks.filter(t => t.kind === 'topic' || t.kind === 'rev' || t.kind === 'backlog');
   const doneCount = studyTasks.filter(t => isTaskDone(sel, t)).length;
   $('dayProgress').textContent = `${doneCount} / ${studyTasks.length} study blocks done`;
 
@@ -801,7 +988,7 @@ function render() {
   tasks.forEach(task => {
     const done = isTaskDone(sel, task);
     const el = document.createElement('div');
-    el.className = 'task' + (done ? ' done' : '') + (task.kind === 'topic' ? ' topic-task' : '');
+    el.className = 'task' + (done ? ' done' : '') + (task.kind === 'topic' || task.kind === 'backlog' ? ' topic-task' : '');
     el.dataset.subject = subjectCode(task.subject);
     const timeStr = pretty(task.start) + '<small>' + pretty(task.end) + '</small>';
     el.innerHTML =
@@ -826,6 +1013,7 @@ function render() {
   renderRoadmap();
   renderStats();
   renderChecklists();
+  renderBacklog();
   renderNow();
 }
 
@@ -933,13 +1121,7 @@ function renderStats() {
   $('progressStat').textContent = pct + '%';
   $('progressBar').style.width = pct + '%';
 
-  const todayNum = todayDayNum();
-  let backlog = 0;
-  for (let d = 1; d < Math.min(todayNum, 50); d++) {
-    const plan = dayPlanFor(d);
-    if (!plan) continue;
-    for (const sub of Object.keys(plan)) for (const tid of plan[sub]) if (!isTopicDone(tid)) backlog++;
-  }
+  const backlog = Object.values(state.backlog).filter(item => item.status !== 'completed').length;
   $('statusStat').textContent = backlog ? `${backlog} pending` : 'On track';
 }
 
@@ -1008,11 +1190,12 @@ function confirmAction({title, message, details=[], confirmText='Confirm', dange
   });
 }
 
-function snapshot() { return JSON.parse(JSON.stringify({topics: state.topics, revs: state.revs, ticks: state.ticks, dailyStatus: state.dailyStatus})); }
+function snapshot() { return JSON.parse(JSON.stringify({topics: state.topics, revs: state.revs, ticks: state.ticks, dailyStatus: state.dailyStatus, backlog:state.backlog})); }
 function offerUndo(snap, msg) {
   showToast({ message: msg, type:'info', duration:15000, action: { label:'Undo', onClick: () => {
     state.topics = snap.topics; state.revs = snap.revs; state.ticks = snap.ticks;
     if (snap.dailyStatus) state.dailyStatus = snap.dailyStatus;
+    if (snap.backlog) state.backlog = snap.backlog;
     save(); render();
     showToast({message:'Restore ho gaya.', type:'success', duration:2500});
   }}});
@@ -1029,7 +1212,7 @@ const firebaseConfig = {
   appId: "1:305180262667:web:e0cbb12f007402945f620e",
   measurementId: "G-WTCKG4HJ4Q"
 };
-let db = null, cloudReady = false, cloudSaveTimer = null, cloudSaveInFlight = false, cloudSavePending = false;
+let db = null, cloudReady = false, cloudSaveTimer = null, cloudRetryTimer = null, cloudSaveInFlight = false, cloudSavePending = false, cloudSaveErrorNotified = false;
 let cloudLoadFailed = false, syncInProgress = false, currentSyncId = '', lastSaveError = null;
 
 function setCloudTag(cls, text) { const el = $('cloudTag'); if (el) { el.className = 'tag ' + cls; el.textContent = text; } }
@@ -1075,12 +1258,32 @@ function loadFromCloud(id) {
 }
 function pushToCloud(payload) {
   if (!db) return Promise.reject(new Error('DB not init'));
-  return cloudRef(currentSyncId).set(payload);
+  return cloudRef(currentSyncId).update(payload);
+}
+
+function mergeBacklog(local, remote) {
+  const merged = {};
+  [...Object.values(remote || {}), ...Object.values(local || {})].forEach(item => {
+    const previous = merged[item.id];
+    if (!previous || item.status === 'completed' ||
+        (previous.status !== 'completed' && (item.updatedAt || 0) >= (previous.updatedAt || 0))) {
+      merged[item.id] = item;
+    }
+  });
+  return merged;
 }
 
 function scheduleCloudSave() {
-  if (!cloudReady || !db) return;
-  if (cloudLoadFailed) { setCloudTag('cloud-error','Cloud not synced'); return; }
+  if (!cloudReady || !db) {
+    setCloudTag('cloud-off','Cloud unavailable — not saved');
+    return;
+  }
+  if (cloudLoadFailed) {
+    setCloudTag('cloud-error','Cloud not synced');
+    showToast({message:'Cloud load fail — Firebase sync ke bina changes cloud mein save nahi honge.', type:'error', duration:8000,
+      action:{label:'Retry sync', onClick:() => { cloudLoadFailed = false; syncFromCloud(); }}});
+    return;
+  }
   if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
   setCloudTag('cloud-saving','Saving…');
   cloudSaveTimer = setTimeout(() => { cloudSaveTimer = null; doCloudSave(); }, 500);
@@ -1119,17 +1322,39 @@ async function doCloudSave() {
         });
         updates.dailyStatus = historyRecords;
       }
-      await userRef.update(updates).catch(e => console.warn('User sync error:', e));
+      try {
+        await userRef.update(updates);
+      } catch (e) {
+        console.warn('Planner data saved, but user profile sync failed:', e);
+      }
     }
 
     lastSaveError = null;
+    cloudSaveErrorNotified = false;
+    if (cloudRetryTimer) {
+      clearTimeout(cloudRetryTimer);
+      cloudRetryTimer = null;
+    }
     setCloudTag('cloud-saved','Saved to cloud');
   } catch (e) {
     lastSaveError = e;
     console.warn('Cloud save failed:', e);
     setCloudTag('cloud-error','Save failed');
-    showToast({message:'Cloud save fail — data browser cache mein safe hai. Retry karo.', type:'error', duration:8000,
-      action: {label:'Retry', onClick: () => doCloudSave()}});
+    if (!cloudSaveErrorNotified) {
+      cloudSaveErrorNotified = true;
+      showToast({message:'Cloud save fail — data browser cache mein safe hai. Retry karo.', type:'error', duration:8000,
+        action: {label:'Retry', onClick: () => {
+          if (cloudRetryTimer) {
+            clearTimeout(cloudRetryTimer);
+            cloudRetryTimer = null;
+          }
+          doCloudSave();
+        }}});
+    }
+    if (!cloudRetryTimer) cloudRetryTimer = setTimeout(() => {
+      cloudRetryTimer = null;
+      doCloudSave();
+    }, 5000);
   } finally {
     cloudSaveInFlight = false;
     if (cloudSavePending) { cloudSavePending = false; scheduleCloudSave(); }
@@ -1171,7 +1396,8 @@ async function syncFromCloud() {
     if (!res.ok) {
       cloudLoadFailed = true;
       setCloudTag('cloud-error','Load failed');
-      showToast({message:'Cloud load fail — save rok diya data safe rakhne ke liye.', type:'error', duration:8000});
+      showToast({message:'Cloud load fail — Firebase sync ke bina changes cloud mein save nahi honge.', type:'error', duration:8000,
+        action:{label:'Retry sync', onClick:() => { cloudLoadFailed = false; syncFromCloud(); }}});
       return;
     }
     cloudLoadFailed = false;
@@ -1198,7 +1424,8 @@ async function syncFromCloud() {
     const localHas = (state.topics && Object.keys(state.topics).length) ||
                      (state.dailyStatus && Object.keys(state.dailyStatus).length) ||
                      (state.revs && Object.keys(state.revs).length) ||
-                     (state.ticks && Object.keys(state.ticks).length);
+                     (state.ticks && Object.keys(state.ticks).length) ||
+                     (state.backlog && Object.keys(state.backlog).length);
 
     if (!remote) {
       if (localHas) scheduleCloudSave();
@@ -1226,6 +1453,7 @@ async function syncFromCloud() {
       });
     });
     merged.dailyStatus = Object.assign({}, remote.dailyStatus || {}, state.dailyStatus || {});
+    merged.backlog = mergeBacklog(state.backlog, remote.backlog);
     merged.settings = Object.assign({}, remote.settings || {}, state.settings || {});
     state = merged;
     saveLocal();
@@ -1241,6 +1469,13 @@ async function syncFromCloud() {
 }
 
 /* ============ EVENTS ============ */
+window.addEventListener('online', () => {
+  if (cloudReady && db) {
+    cloudLoadFailed = false;
+    syncFromCloud();
+  }
+});
+
 function wireEvents() {
   $('startDate').addEventListener('change', () => { state.settings.startDate = $('startDate').value; save(); render(); });
   $('selectedDate').addEventListener('change', () => {
@@ -1266,7 +1501,7 @@ function wireEvents() {
     const sel = $('selectedDate').value || iso(new Date());
     const dayNum = Math.floor((dateOf(sel) - dateOf($('startDate').value || '2026-10-18'))/DAY)+1;
     if (dayNum < 1 || dayNum > 50) return;
-    const tasks = buildDayTasks(sel, dayNum).filter(t => t.kind === 'topic' || t.kind === 'rev');
+    const tasks = buildDayTasks(sel, dayNum).filter(t => t.kind === 'topic' || t.kind === 'rev' || t.kind === 'backlog');
     if (!tasks.length) return;
     const ok = await confirmAction({title:'Sab tasks complete mark karo?', message:`${fmt(sel)} ke saare study blocks done ho jayenge.`, details:[`${tasks.length} tasks`, 'Undo 15s'], confirmText:'Haan', danger:false});
     if (!ok) return;
@@ -1292,12 +1527,12 @@ function wireEvents() {
   });
 
   $('resetAllBtn').addEventListener('click', async () => {
-    const count = Object.keys(state.topics).length + Object.keys(state.revs).length + Object.keys(state.ticks).length;
+    const count = Object.keys(state.topics).length + Object.keys(state.revs).length + Object.keys(state.ticks).length + Object.keys(state.backlog).length;
     if (!count) { showToast({message:'Kuch reset karne ko nahi.', type:'info'}); return; }
     const ok = await confirmAction({title:'Sab progress reset?', message:'Saare ticks + checklists clear ho jayenge. Settings safe.', details:[`${count} ticks/checks delete`, 'Undo 15s'], confirmText:'Reset', danger:true});
     if (!ok) return;
     const snap = snapshot();
-    state.topics = {}; state.revs = {}; state.ticks = {};
+    state.topics = {}; state.revs = {}; state.ticks = {}; state.backlog = {};
     save(); render();
     offerUndo(snap, 'Reset done. Undo?');
   });

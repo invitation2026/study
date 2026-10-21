@@ -458,6 +458,8 @@ function normalizeState(s) {
     topics: (s.topics && typeof s.topics === 'object') ? s.topics : {},
     revs: (s.revs && typeof s.revs === 'object') ? s.revs : {},
     ticks: (s.ticks && typeof s.ticks === 'object') ? s.ticks : {},
+    dailyStatus: (s.dailyStatus && typeof s.dailyStatus === 'object') ? s.dailyStatus : {},
+    backlog: (s.backlog && typeof s.backlog === 'object') ? s.backlog : {},
     settings: (s.settings && typeof s.settings === 'object') ? s.settings : {},
     lastUpdated: typeof s.lastUpdated === 'number' ? s.lastUpdated : 0
   };
@@ -502,6 +504,10 @@ function todayDayNum() {
   return Math.floor((dateOf(iso(new Date())) - dateOf(start)) / DAY) + 1;
 }
 
+function getSchoolStatus(dateStr) {
+  return state.dailyStatus[dateStr] || (dateStr === iso(new Date()) ? state.settings.schoolMode : '') || 'attend';
+}
+
 function startMin(t) {
   return (!t.start || t.start === '—') ? 999999 : minutes(t.start);
 }
@@ -536,11 +542,16 @@ function getDeepakWindows(dow, holiday) {
   ];
 }
 
+function getFixedClassBlocks(tasks) {
+  return tasks.filter(task => task.type === 'class' || task.type === 'tabla' || task.type === 'tuition')
+    .map(task => ({start:task.start, end:task.end}));
+}
+
 /* ============ SCHEDULE BUILDER ============ */
-function buildDayTasks(dateStr, dayNum) {
+function buildDayTasks(dateStr, dayNum, includeBacklog = true) {
   const d = dateOf(dateStr);
   const dow = d.getDay();
-  const school = $('schoolMode').value;
+  const school = getSchoolStatus(dateStr);
   const holiday = school !== 'attend' || dow === 0;
   const tasks = [];
 
@@ -636,7 +647,9 @@ function buildDayTasks(dateStr, dayNum) {
     });
   }
 
-  const windows = getDeepakWindows(dow, holiday).map(w => ({
+  const windows = window.PlannerScheduling.freeSlots(
+    getDeepakWindows(dow, holiday), getFixedClassBlocks(tasks)
+  ).map(w => ({
     s: minutes(w[0]),
     e: minutes(w[1]),
     cur: minutes(w[0])
@@ -715,6 +728,15 @@ function buildDayTasks(dateStr, dayNum) {
     type: 'routine'
   });
 
+  if (includeBacklog) {
+    Object.values(state.backlog).filter(item => item.status === 'scheduled' && item.scheduledDate === dateStr)
+      .forEach(item => tasks.push({
+        kind:'backlog', backlogId:item.id, subject:item.subject, title:item.title,
+        desc:`Previously missed on ${fmt(item.originalDate)}. ${item.desc || ''}`.trim(),
+        start:item.start, end:item.end, type:'study'
+      }));
+  }
+
   return tasks.sort((a,b) => startMin(a) - startMin(b));
 }
 
@@ -725,12 +747,25 @@ function taskKey(dateStr, task) {
   return `x:${dateStr}:${task.start}:${task.title}`;
 }
 function isTaskDone(dateStr, task) {
+  if (task.kind === 'backlog') return state.backlog[task.backlogId]?.status === 'completed';
   if (task.kind === 'topic') return isTopicDone(task.topicId);
   if (task.kind === 'rev') return !!state.revs[taskKey(dateStr, task)];
   return !!state.ticks[taskKey(dateStr, task)];
 }
 function setTaskDone(dateStr, task, val) {
-  if (task.kind === 'topic') {
+  if (task.kind === 'backlog') {
+    const item = state.backlog[task.backlogId];
+    if (item) {
+      if (item.kind === 'topic') {
+        if (val) state.topics[item.topicId] = true; else delete state.topics[item.topicId];
+      } else if (item.kind === 'rev') {
+        const key = `r:${item.originalDate}:${item.revIdx}`;
+        if (val) state.revs[key] = true; else delete state.revs[key];
+      }
+      item.status = val ? 'completed' : 'scheduled';
+      item.updatedAt = Date.now();
+    }
+  } else if (task.kind === 'topic') {
     if (val) state.topics[task.topicId] = true; else delete state.topics[task.topicId];
   } else if (task.kind === 'rev') {
     if (val) state.revs[taskKey(dateStr, task)] = true; else delete state.revs[taskKey(dateStr, task)];
@@ -738,6 +773,136 @@ function setTaskDone(dateStr, task, val) {
     if (val) state.ticks[taskKey(dateStr, task)] = true; else delete state.ticks[taskKey(dateStr, task)];
   }
   save();
+}
+
+function sourceIsDone(item) {
+  if (item.kind === 'topic') return isTopicDone(item.topicId);
+  if (item.kind === 'rev') return !!state.revs[`r:${item.originalDate}:${item.revIdx}`];
+  return false;
+}
+
+function backlogWindows(dateStr) {
+  const dow = dateOf(dateStr).getDay();
+  const holiday = getSchoolStatus(dateStr) !== 'attend' || dow === 0;
+  const dayNum = Math.floor((dateOf(dateStr) - dateOf($('startDate').value || '2026-10-18')) / DAY) + 1;
+  const fixedBlocks = getFixedClassBlocks(buildDayTasks(dateStr, dayNum, false));
+  return window.PlannerScheduling.freeSlots(getDeepakWindows(dow, holiday), fixedBlocks);
+}
+
+function placeBacklogItem(item, dateStr) {
+  if (dateStr < iso(new Date())) return false;
+  const dayNum = Math.floor((dateOf(dateStr) - dateOf($('startDate').value || '2026-10-18')) / DAY) + 1;
+  const occupied = buildDayTasks(dateStr, dayNum, false);
+  Object.values(state.backlog).forEach(other => {
+    if (other.id !== item.id && other.status === 'scheduled' && other.scheduledDate === dateStr) {
+      occupied.push({start:other.start, end:other.end});
+    }
+  });
+  if (dateStr === iso(new Date())) {
+    const now = new Date();
+    occupied.push({start:'00:00', end:hm(now.getHours() * 60 + now.getMinutes())});
+  }
+  const slot = window.PlannerScheduling.findSlot(backlogWindows(dateStr), occupied, item.duration + 5);
+  if (!slot) return false;
+  const changed = item.scheduledDate !== dateStr || item.start !== slot.start || item.end !== hm(minutes(slot.start) + item.duration);
+  item.scheduledDate = dateStr;
+  item.start = slot.start;
+  item.end = hm(minutes(slot.start) + item.duration);
+  item.status = 'scheduled';
+  if (changed) item.updatedAt = Date.now();
+  return true;
+}
+
+function syncBacklog() {
+  const today = iso(new Date());
+  const startStr = $('startDate').value || '2026-10-18';
+  let changed = false;
+  for (let dayNum = 1; dayNum <= 50; dayNum++) {
+    const date = iso(new Date(dateOf(startStr).getTime() + (dayNum - 1) * DAY));
+    if (date >= today) break;
+    buildDayTasks(date, dayNum, false).filter(task => task.kind === 'topic' || task.kind === 'rev')
+      .filter(task => !isTaskDone(date, task)).forEach(task => {
+        const id = `${date}|${taskKey(date, task)}`;
+        if (!state.backlog[id]) {
+          state.backlog[id] = {
+            id, kind:task.kind, originalDate:date, topicId:task.topicId, revIdx:task.revIdx,
+            subject:task.subject, title:task.title, desc:task.desc,
+            duration:task.kind === 'topic' ? (getChapterByTopicId(task.topicId)?.topic[2] || 30) : (revTasksFor(dayNum)?.[task.revIdx]?.[1] || 30),
+            status:'pending', updatedAt:Date.now()
+          };
+          changed = true;
+        }
+      });
+  }
+  Object.values(state.backlog).forEach(item => {
+    const status = sourceIsDone(item) ? 'completed' : item.scheduledDate ? 'scheduled' : 'pending';
+    if (item.status !== status) {
+      item.status = status;
+      item.updatedAt = Date.now();
+      changed = true;
+    }
+  });
+  const items = Object.values(state.backlog);
+  items.filter(item => item.status === 'scheduled').forEach(item => {
+    const previous = `${item.scheduledDate}|${item.start}|${item.end}`;
+    if (!placeBacklogItem(item, item.scheduledDate)) {
+      item.status = 'pending';
+      delete item.scheduledDate;
+      delete item.start;
+      delete item.end;
+      changed = true;
+    } else if (previous !== `${item.scheduledDate}|${item.start}|${item.end}`) {
+      changed = true;
+    }
+  });
+  const candidates = [];
+  for (let offset = 0; offset < 120; offset++) {
+    const date = iso(new Date(dateOf(today).getTime() + offset * DAY));
+    const dow = dateOf(date).getDay();
+    const priority = dow === 0 ? 1 : getSchoolStatus(date) === 'attend' ? 0 : 2;
+    candidates.push({date, priority});
+  }
+  candidates.sort((a,b) => a.priority - b.priority || a.date.localeCompare(b.date));
+  items.filter(item => item.status === 'pending').forEach(item => {
+    for (const candidate of candidates) {
+      if (placeBacklogItem(item, candidate.date)) {
+        changed = true;
+        break;
+      }
+    }
+  });
+  if (changed) save();
+}
+
+function renderBacklog() {
+  const host = $('backlogList');
+  if (!host) return;
+  host.replaceChildren();
+  const items = Object.values(state.backlog).filter(item => item.status !== 'completed')
+    .sort((a,b) => a.originalDate.localeCompare(b.originalDate));
+  if (!items.length) {
+    host.textContent = 'Abhi koi missed study block nahi hai.';
+    return;
+  }
+  items.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'task';
+    row.style.gridTemplateColumns = 'minmax(0,1fr) minmax(190px,260px)';
+    row.innerHTML = `<div></div><div class="taskbody"><div class="tasktitle">${esc(item.title)}</div>` +
+      `<div class="desc">${esc(item.subject)} · Missed on ${esc(fmt(item.originalDate))}` +
+      `${item.scheduledDate ? ` · Scheduled ${esc(fmt(item.scheduledDate))} at ${esc(pretty(item.start))}` : ' · No suitable slot yet'}</div></div>` +
+      `<div class="field"><label>Reschedule date</label><input type="date" value="${esc(item.scheduledDate || iso(new Date()))}"><button class="btn" type="button">Shift</button></div>`;
+    const input = row.querySelector('input');
+    row.querySelector('button').addEventListener('click', () => {
+      if (!placeBacklogItem(item, input.value)) {
+        showToast({message:'Is date par protected blocks ke saath suitable free slot nahi hai.', type:'warning'});
+        return;
+      }
+      save();
+      render();
+    });
+    host.appendChild(row);
+  });
 }
 
 /* ============ SMART DIRECTION ============ */
@@ -838,7 +1003,9 @@ function renderNow() {
 
 /* ============ RENDER: DAY ============ */
 function render() {
+  syncBacklog();
   const sel = $('selectedDate').value || iso(new Date());
+  if ($('schoolMode') && $('schoolMode').value !== getSchoolStatus(sel)) $('schoolMode').value = getSchoolStatus(sel);
   const dayNum = (() => {
     const start = $('startDate').value || '2026-10-18';
     return Math.floor((dateOf(sel) - dateOf(start)) / DAY) + 1;
@@ -848,8 +1015,9 @@ function render() {
   $('todayHeading').textContent = `${fmt(sel)} — Day ${Math.max(1,Math.min(50,dayNum))} / 50`;
   $('dayStat').textContent = dayNum >= 1 && dayNum <= 50 ? `${dayNum}/50` : dayNum < 1 ? 'Before' : 'Done';
 
-  const tasks = (dayNum >= 1 && dayNum <= 50) ? buildDayTasks(sel, dayNum) : [];
-  const studyTasks = tasks.filter(t => t.kind === 'topic' || t.kind === 'rev');
+  const hasBacklog = Object.values(state.backlog).some(item => item.status === 'scheduled' && item.scheduledDate === sel);
+  const tasks = (dayNum >= 1 && dayNum <= 50) || hasBacklog ? buildDayTasks(sel, dayNum) : [];
+  const studyTasks = tasks.filter(t => t.kind === 'topic' || t.kind === 'rev' || t.kind === 'backlog');
   const doneCount = studyTasks.filter(t => isTaskDone(sel, t)).length;
   $('dayProgress').textContent = `${doneCount} / ${studyTasks.length} study blocks done`;
 
@@ -861,7 +1029,7 @@ function render() {
   tasks.forEach(task => {
     const done = isTaskDone(sel, task);
     const el = document.createElement('div');
-    el.className = 'task' + (done ? ' done' : '') + (task.kind === 'topic' ? ' topic-task' : '');
+    el.className = 'task' + (done ? ' done' : '') + (task.kind === 'topic' || task.kind === 'backlog' ? ' topic-task' : '');
     el.dataset.subject = subjectCode(task.subject);
     const timeStr = task.start === '—'
       ? 'Flexible<small>backlog</small>'
@@ -888,6 +1056,7 @@ function render() {
   renderRoadmap();
   renderStats();
   renderChecklists();
+  renderBacklog();
   renderNow();
 }
 
@@ -995,13 +1164,7 @@ function renderStats() {
   $('progressStat').textContent = pct + '%';
   $('progressBar').style.width = pct + '%';
 
-  const todayNum = todayDayNum();
-  let backlog = 0;
-  for (let d = 1; d < Math.min(todayNum, 50); d++) {
-    const plan = dayPlanFor(d);
-    if (!plan) continue;
-    for (const sub of Object.keys(plan)) for (const tid of plan[sub]) if (!isTopicDone(tid)) backlog++;
-  }
+  const backlog = Object.values(state.backlog).filter(item => item.status !== 'completed').length;
   $('statusStat').textContent = backlog ? `${backlog} pending` : 'On track';
 }
 
@@ -1078,10 +1241,11 @@ function confirmAction({title, message, details=[], confirmText='Confirm', dange
   });
 }
 
-function snapshot() { return JSON.parse(JSON.stringify({topics: state.topics, revs: state.revs, ticks: state.ticks})); }
+function snapshot() { return JSON.parse(JSON.stringify({topics: state.topics, revs: state.revs, ticks: state.ticks, dailyStatus:state.dailyStatus, backlog:state.backlog})); }
 function offerUndo(snap, msg) {
   showToast({ message: msg, type:'info', duration:15000, action: { label:'Undo', onClick: () => {
     state.topics = snap.topics; state.revs = snap.revs; state.ticks = snap.ticks;
+    state.dailyStatus = snap.dailyStatus; state.backlog = snap.backlog;
     save(); render();
     showToast({message:'Restore ho gaya.', type:'success', duration:2500});
   }}});
@@ -1098,7 +1262,7 @@ const firebaseConfig = {
   appId: "1:305180262667:web:e0cbb12f007402945f620e",
   measurementId: "G-WTCKG4HJ4Q"
 };
-let db = null, cloudReady = false, cloudSaveTimer = null, cloudSaveInFlight = false, cloudSavePending = false;
+let db = null, cloudReady = false, cloudSaveTimer = null, cloudRetryTimer = null, cloudSaveInFlight = false, cloudSavePending = false, cloudSaveErrorNotified = false;
 let cloudLoadFailed = false, syncInProgress = false, currentSyncId = '', lastSaveError = null;
 
 function setCloudTag(cls, text) { const el = $('cloudTag'); if (el) { el.className = 'tag ' + cls; el.textContent = text; } }
@@ -1138,12 +1302,30 @@ function loadFromCloud(id) {
 }
 function pushToCloud(payload) {
   if (!db) return Promise.reject(new Error('DB not init'));
-  return cloudRef(currentSyncId).set(payload);
+  return cloudRef(currentSyncId).update(payload);
+}
+
+function mergeBacklog(local, remote) {
+  const merged = {};
+  [...Object.values(remote || {}), ...Object.values(local || {})].forEach(item => {
+    const previous = merged[item.id];
+    if (!previous || item.status === 'completed' ||
+        (previous.status !== 'completed' && (item.updatedAt || 0) >= (previous.updatedAt || 0))) merged[item.id] = item;
+  });
+  return merged;
 }
 
 function scheduleCloudSave() {
-  if (!cloudReady || !db) return;
-  if (cloudLoadFailed) { setCloudTag('cloud-error','Cloud not synced'); return; }
+  if (!cloudReady || !db) {
+    setCloudTag('cloud-off','Cloud unavailable — not saved');
+    return;
+  }
+  if (cloudLoadFailed) {
+    setCloudTag('cloud-error','Cloud not synced');
+    showToast({message:'Cloud load fail — Firebase sync ke bina changes cloud mein save nahi honge.', type:'error', duration:8000,
+      action:{label:'Retry sync', onClick:() => { cloudLoadFailed = false; syncFromCloud(); }}});
+    return;
+  }
   if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
   setCloudTag('cloud-saving','Saving…');
   cloudSaveTimer = setTimeout(() => { cloudSaveTimer = null; doCloudSave(); }, 500);
@@ -1157,13 +1339,31 @@ async function doCloudSave() {
   try {
     await pushToCloud({...state, lastUpdated: state.lastUpdated || Date.now()});
     lastSaveError = null;
+    if (cloudRetryTimer) {
+      clearTimeout(cloudRetryTimer);
+      cloudRetryTimer = null;
+    }
+    cloudSaveErrorNotified = false;
     setCloudTag('cloud-saved','Saved to cloud');
   } catch (e) {
     lastSaveError = e;
     console.warn('Cloud save failed:', e);
     setCloudTag('cloud-error','Save failed');
-    showToast({message:'Cloud save fail — data browser cache mein safe hai. Retry karo.', type:'error', duration:8000,
-      action: {label:'Retry', onClick: () => doCloudSave()}});
+    if (!cloudSaveErrorNotified) {
+      cloudSaveErrorNotified = true;
+      showToast({message:'Cloud save fail — data browser cache mein safe hai. Retry karo.', type:'error', duration:8000,
+        action: {label:'Retry', onClick: () => {
+          if (cloudRetryTimer) {
+            clearTimeout(cloudRetryTimer);
+            cloudRetryTimer = null;
+          }
+          doCloudSave();
+        }}});
+    }
+    if (!cloudRetryTimer) cloudRetryTimer = setTimeout(() => {
+      cloudRetryTimer = null;
+      doCloudSave();
+    }, 5000);
   } finally {
     cloudSaveInFlight = false;
     if (cloudSavePending) { cloudSavePending = false; scheduleCloudSave(); }
@@ -1179,12 +1379,17 @@ async function syncFromCloud() {
     if (!res.ok) {
       cloudLoadFailed = true;
       setCloudTag('cloud-error','Load failed');
-      showToast({message:'Cloud load fail — save rok diya data safe rakhne ke liye.', type:'error', duration:8000});
+      showToast({message:'Cloud load fail — Firebase sync ke bina changes cloud mein save nahi honge.', type:'error', duration:8000,
+        action:{label:'Retry sync', onClick:() => { cloudLoadFailed = false; syncFromCloud(); }}});
       return;
     }
     cloudLoadFailed = false;
     const remote = (res.exists && res.data) ? normalizeState(res.data) : null;
-    const localHas = state.topics && Object.keys(state.topics).length;
+    const localHas = (state.topics && Object.keys(state.topics).length) ||
+      (state.revs && Object.keys(state.revs).length) ||
+      (state.ticks && Object.keys(state.ticks).length) ||
+      (state.dailyStatus && Object.keys(state.dailyStatus).length) ||
+      (state.backlog && Object.keys(state.backlog).length);
 
     if (!remote) {
       if (localHas) scheduleCloudSave();
@@ -1208,6 +1413,8 @@ async function syncFromCloud() {
         if (a[key]===true || b[key]===true) merged[k][key] = true;
       });
     });
+    merged.dailyStatus = Object.assign({}, remote.dailyStatus, state.dailyStatus);
+    merged.backlog = mergeBacklog(state.backlog, remote.backlog);
     merged.settings = Object.assign({}, remote.settings, state.settings);
     state = merged;
     saveLocal();
@@ -1221,10 +1428,26 @@ async function syncFromCloud() {
 }
 
 /* ============ EVENTS ============ */
+window.addEventListener('online', () => {
+  if (cloudReady && db) {
+    cloudLoadFailed = false;
+    syncFromCloud();
+  }
+});
+
 function wireEvents() {
   $('startDate').addEventListener('change', () => { state.settings.startDate = $('startDate').value; save(); render(); });
-  $('selectedDate').addEventListener('change', render);
-  $('schoolMode').addEventListener('change', () => { state.settings.schoolMode = $('schoolMode').value; save(); render(); });
+  $('selectedDate').addEventListener('change', () => {
+    $('schoolMode').value = getSchoolStatus($('selectedDate').value);
+    render();
+  });
+  $('schoolMode').addEventListener('change', () => {
+    const date = $('selectedDate').value || iso(new Date());
+    state.dailyStatus[date] = $('schoolMode').value;
+    state.settings.schoolMode = $('schoolMode').value;
+    save();
+    render();
+  });
   $('intensity').addEventListener('change', () => { state.settings.intensity = $('intensity').value; save(); render(); });
   $('todayBtn').addEventListener('click', () => { $('selectedDate').value = iso(new Date()); render(); });
 
@@ -1232,7 +1455,7 @@ function wireEvents() {
     const sel = $('selectedDate').value || iso(new Date());
     const dayNum = Math.floor((dateOf(sel) - dateOf($('startDate').value || '2026-10-18'))/DAY)+1;
     if (dayNum < 1 || dayNum > 50) return;
-    const tasks = buildDayTasks(sel, dayNum).filter(t => t.kind === 'topic' || t.kind === 'rev');
+    const tasks = buildDayTasks(sel, dayNum).filter(t => t.kind === 'topic' || t.kind === 'rev' || t.kind === 'backlog');
     if (!tasks.length) return;
     const ok = await confirmAction({title:'Sab tasks complete mark karo?', message:`${fmt(sel)} ke saare study blocks done ho jayenge.`, details:[`${tasks.length} tasks`, 'Undo 15s'], confirmText:'Haan', danger:false});
     if (!ok) return;
@@ -1258,12 +1481,12 @@ function wireEvents() {
   });
 
   $('resetAllBtn').addEventListener('click', async () => {
-    const count = Object.keys(state.topics).length + Object.keys(state.revs).length + Object.keys(state.ticks).length;
+    const count = Object.keys(state.topics).length + Object.keys(state.revs).length + Object.keys(state.ticks).length + Object.keys(state.backlog).length;
     if (!count) { showToast({message:'Kuch reset karne ko nahi.', type:'info'}); return; }
     const ok = await confirmAction({title:'Sab progress reset?', message:'Saare ticks + checklists clear ho jayenge. Settings safe.', details:[`${count} ticks/checks delete`, 'Undo 15s'], confirmText:'Reset', danger:true});
     if (!ok) return;
     const snap = snapshot();
-    state.topics = {}; state.revs = {}; state.ticks = {};
+    state.topics = {}; state.revs = {}; state.ticks = {}; state.backlog = {};
     save(); render();
     offerUndo(snap, 'Reset done. Undo?');
   });
@@ -1308,7 +1531,7 @@ async function init() {
   $('selectedDate').value = iso(new Date());
   try { const raw = localStorage.getItem(STORE); if (raw) state = normalizeState(JSON.parse(raw)); } catch(e) {}
   if (state.settings.startDate) $('startDate').value = state.settings.startDate;
-  if (state.settings.schoolMode) $('schoolMode').value = state.settings.schoolMode;
+  $('schoolMode').value = getSchoolStatus($('selectedDate').value);
   if (state.settings.intensity) $('intensity').value = state.settings.intensity;
   currentSyncId = getOrCreateSyncId();
   $('syncIdView').value = currentSyncId;
