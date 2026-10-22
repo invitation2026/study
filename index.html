@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b1220">
+<meta name="color-scheme" content="dark">
 <title>Class 12 Commerce | 50-Day Smart Study Command Center</title>
 <style>
 :root{
@@ -84,6 +85,11 @@ main{max-width:1120px;margin:0 auto;padding:22px 14px 70px}
 .tasktitle{font-weight:800;font-size:14.5px}
 .desc{font-size:13px;color:var(--muted);margin-top:3px}
 .nowbadge{display:inline-block;font-size:10px;font-weight:900;letter-spacing:.08em;padding:2px 7px;border-radius:99px;background:var(--accent);color:#0d1424;vertical-align:middle;margin-left:6px}
+.movedbadge{background:#c084fc;color:#1a1030}
+.movedtag{display:inline-block;font-size:11px;font-weight:800;color:#e9d5ff;border:1px dashed #7c5cbf;border-radius:99px;padding:2px 8px}
+.task.is-catchup{background:#151129;border-left-color:#c084fc}
+.taskbody{min-width:0}
+.tasktitle{overflow-wrap:anywhere}
 .task[data-subject="acc"]{border-left-color:#8ea2ff}
 .task[data-subject="eco"]{border-left-color:#5eead4}
 .task[data-subject="bst"]{border-left-color:#fcd34d}
@@ -169,18 +175,54 @@ details.panel[open] > summary::after{transform:rotate(180deg)}
 .toast-action{background:var(--accent);color:#111827;border:none;border-radius:9px;padding:7px 12px;font-weight:800;cursor:pointer;white-space:nowrap}
 .toast-close{background:transparent;border:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:0 4px}
 @media(max-width:760px){
-  .stats{grid-template-columns:repeat(2,1fr)}
-  .controls{grid-template-columns:repeat(2,1fr)}
-  .roadmap{grid-template-columns:1fr}
-  .task{grid-template-columns:20px 82px 1fr}
+  html{-webkit-text-size-adjust:100%}
+  main{padding:14px 10px calc(46px + env(safe-area-inset-bottom))}
+  .hero{padding:18px 15px}
+  .hero h1{font-size:clamp(24px,7vw,32px)}
+  .hero p{font-size:13.5px;line-height:1.5}
+  .eyebrow{font-size:11px;letter-spacing:.1em}
+  .chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:6px;margin-left:-2px;margin-right:-2px}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+  .stat{padding:11px}
+  .stat strong{font-size:19px}
+  .stat small{font-size:10.5px}
+  .panel{margin:10px 0;padding:14px;border-radius:14px}
+  .panel h2{font-size:17.5px}
+  .controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .field input,.field select{min-height:44px;font-size:16px;padding:10px 11px}
+  .btn{min-height:44px;padding:10px 12px;font-size:14px}
+  .actions{gap:8px}
+  .actions .btn{flex:1 1 160px}
+  .row{flex-wrap:wrap;gap:8px}
+  .row .field{flex:1 1 100%;min-width:0}
+  .row .btn{width:100%}
+  .task{grid-template-columns:24px minmax(0,1fr);gap:2px 10px;padding:12px 11px;border-radius:12px;align-items:start}
+  .task input[type=checkbox]{width:22px;height:22px;margin-top:0}
+  .time{grid-column:2;grid-row:1;display:flex;gap:6px;align-items:baseline;font-size:12px;line-height:1.2}
+  .time small{display:inline;font-size:11px}
+  .taskbody{grid-column:2;grid-row:2}
+  .tasktitle{font-size:14px;line-height:1.35}
+  .desc{font-size:12.5px;margin-top:2px}
+  .now{padding:13px}
+  .now strong{font-size:18px}
+  .roadmap{grid-template-columns:1fr;gap:8px}
+  .roadmap-item{padding:11px}
+  .subhead{font-size:13px;margin:14px 0 6px}
+  details.panel>summary{font-size:15px;min-height:44px}
+  .helpbody{font-size:13px}
+  .modal{max-width:none;padding:16px;border-radius:16px}
+  .modal .actions{display:grid;grid-template-columns:1fr 1fr}
+  .toast{font-size:13px;padding:11px 12px;max-width:none}
+  .footer{font-size:11.5px}
 }
-@media(max-width:440px){
+@media(max-width:380px){
+  .stats{grid-template-columns:1fr}
   .controls{grid-template-columns:1fr}
-  .task{grid-template-columns:20px 1fr}
-  .time{grid-column:2}
-  .taskbody{grid-column:2}
-  .hero{padding:18px}
-  .panel{padding:15px}
+  .hero h1{font-size:23px}
+  .task{grid-template-columns:22px minmax(0,1fr);gap:2px 8px}
+  .task input[type=checkbox]{width:20px;height:20px}
 }
 </style>
 </head>
@@ -190,13 +232,15 @@ details.panel[open] > summary::after{transform:rotate(180deg)}
 <header class="hero">
   <div class="eyebrow">CBSE Class XII · Commerce · 50-Day Smart Mission</div>
   <h1>Study Command Center</h1>
-  <p>Topic-level tracking ke saath. Har chapter ke andar multiple topics (concept → numerical → practice → test) alag-alag track hote hain. Chapter tabhi complete hota hai jab uske saare topics + test done ho. "Now" panel tumhe exact next action bataata hai — aaj ka, backlog ka, ya kal ka. Accountancy priority, saath mein Economics, Business Studies, English Core aur Physical Education.</p>
+  <p>Topic-level tracking ke saath. Har chapter ke andar multiple topics (concept → numerical → practice → test) alag-alag track hote hain. Chapter tabhi complete hota hai jab uske saare topics + test done ho. "Now" panel tumhe exact next action bataata hai — aaj ka, backlog ka, ya kal ka. Accountancy priority, saath mein Economics, Business Studies, English Core aur Physical Education. Timetable tumhari Tabla class (Tue/Thu 5:15–7, Wed 7:15–9, Fri 7–9) ke around bana hai — isliye morning 5:40 ka deep-work block fix hai.</p>
   <div class="chips">
     <span class="chip">Plan start: 18 Oct 2026</span>
-    <span class="chip">Sleep cutoff: 9:00 PM</span>
-    <span class="chip">Tue/Thu class: 5:15–7 PM</span>
-    <span class="chip">Wed: 7:15–9 PM</span>
-    <span class="chip">Fri: 7–9 PM</span>
+    <span class="chip">Morning deep work: 5:40–6:50 AM</span>
+    <span class="chip">School: 7 AM–2 PM</span>
+    <span class="chip">Tabla: Tue/Thu 5:15–7 PM</span>
+    <span class="chip">Tabla: Wed 7:15–9 PM</span>
+    <span class="chip">Tabla: Fri 7–9 PM</span>
+    <span class="chip">Sleep: 10 PM (class days)</span>
   </div>
   <div class="chips">
     <span class="chip">Logged in as: <b data-user-name>—</b></span>
@@ -210,12 +254,14 @@ details.panel[open] > summary::after{transform:rotate(180deg)}
     <ol>
       <li><b>50-day plan start</b> — jis din se plan shuru karna hai wo date daalo.</li>
       <li><b>Kis din ka timetable?</b> — kisi bhi date par jaakar us din ka schedule dekh sakte ho.</li>
-      <li><b>School mode</b> — School attend / Holiday / Skip. Holiday par morning study blocks add ho jaate hain.</li>
+      <li><b>School mode</b> — School attend / Holiday / Skip. Holiday par study 8:30 AM se shuru hoti hai. Sunday default holiday hai.</li>
+      <li><b>Tabla class fix hai</b> — Tue/Thu 5:15–7 PM, Wed 7:15–9 PM, Fri 7–9 PM. In dino evening study class ke pehle aur baad mein split hoti hai; isliye morning 5:40–6:50 ka deep-work block sabse important hai.</li>
       <li><b>Study intensity</b> — Auto recommended. Light/Medium/Heavy se din ka load adjust hota hai.</li>
       <li><b>Task tick = topic complete</b> — har topic (concept / numerical / practice / test) apne aap mein ek unit hai. Tick karo toh wahi topic done, poora chapter nahi.</li>
       <li><b>Chapter auto-complete</b> — chapter tabhi complete maana jaayega jab uske saare topics tick ho jaayen. Adhoora chapter agle din continue hoga, force nahi karega naya chapter.</li>
       <li><b>Topic tracker</b> — niche chapter expand karke uska specific topic checklist dekh sakte ho. Ye daily timetable se sync hai.</li>
       <li><b>Backlog</b> — agar ek din ka koi topic pending reh gaya, "Now" panel use backlog ke roop mein flag karegaa — wahi pehle finish karo, phir aaj ka plan continue.</li>
+      <li><b>Sunday catch-up</b> — weekday par jo topic time ki kami se fit nahi hua, wo Sunday ke "CATCH-UP" block mein aa jaata hai. Isliye kuch dino par topic count kam dikhega — wo gayab nahi hua, Sunday par hai. Sunday par 7–8 ghante study ho sakti hai; isi din lunch ke baad 14:00–20:00 ka long block hai.</li>
       <li><b>Cloud sync</b> — Sync ID ko copy karke doosre device par daal kar progress restore kar sakte ho.</li>
       <li><b>Safety</b> — Clear / Reset jaise destructive actions se pehle confirm popup aayega, phir 15 sec tak Undo.</li>
     </ol>
@@ -284,7 +330,7 @@ details.panel[open] > summary::after{transform:rotate(180deg)}
   <div class="actions">
     <button class="btn" id="todayBtn" type="button">Aaj par wapas</button>
   </div>
-  <p class="small muted" style="margin:12px 0 0">School holiday/skip mode morning study blocks add karta hai. School skip encourage nahi kiya ja raha — sirf schedule adjust karne ka option hai.</p>
+  <p class="small muted" style="margin:12px 0 0">School holiday/skip par study 8:30 AM se shuru hoti hai. Sunday default holiday hai. School skip encourage nahi kiya ja raha — sirf schedule adjust karne ka option hai.</p>
 </section>
 
 <section class="panel">
@@ -365,7 +411,7 @@ details.panel[open] > summary::after{transform:rotate(180deg)}
 </section>
 
 <div class="footer">
-  50-day plan start date aur school mode se daily schedule generate hota hai. Har chapter ke andar multiple topics (concept → numerical → practice → test) alag-alag units hain — chapter tabhi complete jab sab topics + test tick ho. Progress Firebase Realtime Database mein permanent save hoti hai. "Now" panel tumhe exact next action bataata hai; backlog panel past pending topics ko surface karta hai. Har study block mein 5–10 min break adjacent hai; 9 PM ke baad study schedule nahi ki gayi.
+  50-day plan start date aur school mode se daily schedule generate hota hai. School day: morning 5:40–6:50 deep work, school 7–2, phir Tabla class ke around evening blocks. Tue/Thu 5:15–7, Wed 7:15–9, Fri 7–9 Tabla class fix hai. Har chapter ke andar multiple topics (concept → numerical → practice → test) alag-alag units hain — chapter tabhi complete jab sab topics + test tick ho. Weekday par fit na hone wale topics Sunday catch-up mein aate hain. Progress Firebase Realtime Database mein permanent save hoti hai. "Now" panel tumhe exact next action bataata hai; backlog panel past pending topics ko surface karta hai. Class days par 10 PM, baaki din 9:30 PM sleep target.
 </div>
 
 </main>

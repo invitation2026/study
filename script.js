@@ -369,36 +369,36 @@ pe: {
 
 /* ============ 50-DAY PLAN ============ */
 const NEW_DAYS = [
-/* 1 */ {acc:'pf:0-2', eco:'ni1:0', bst:'mgmt:0', eng:'ll:0', pe:'se:0'},
-/* 2 */ {acc:'pf:3-5', eco:'ni1:1', bst:'mgmt:1', eng:'ll:1', pe:'se:1'},
+/* 1 */ {acc:'pf:0-2', eco:'ni1:0,comp:0', bst:'mgmt:0,cp:0-1', eng:'ll:0', pe:'se:0'},
+/* 2 */ {acc:'pf:3-5', eco:'ni1:1,inf:1', bst:'mgmt:1,mktg:2', eng:'ll:1', pe:'se:1'},
 /* 3 */ {acc:'pf:6-8', eco:'ni1:2', bst:'mgmt:2', eng:'ls:0', pe:'cwsn:0'},
 /* 4 */ {acc:'pf:9,gw:0-1', eco:'ni2:0', bst:'pom:0', eng:'ls:1', pe:'cwsn:1'},
 /* 5 */ {acc:'gw:2-5', eco:'ni2:1', bst:'pom:1', eng:'dw:0', pe:'yoga:0'},
 /* 6 */ {acc:'psr:0-3', eco:'ni2:2', bst:'pom:2', eng:'dw:1', pe:'yoga:1'},
 /* 7 */ {acc:'psr:4-6', eco:'ni3:0', bst:'be:0', eng:'rr:0', pe:'dis:0'},
 /* 8 */ {acc:'adm:0-2', eco:'ni3:1', bst:'be:1', eng:'rr:1', pe:'dis:1'},
-/* 9 */ {acc:'adm:3-5', eco:'ni3:2', bst:'be:2', eng:'ind:0', pe:'nut:0'},
+/* 9 */ {acc:'adm:3-5', eco:'ni3:2,emp:0', bst:'be:2,mktg:1', eng:'ind:0', pe:'nut:0'},
 /*10 */ {acc:'adm:6-8', eco:'mab:0', bst:'plan:0', eng:'ind:1', pe:'nut:1'},
 /*11 */ {acc:'adm:9-10', eco:'mab:1', bst:'plan:1', eng:'pp:0', pe:'tmm:0'},
 /*12 */ {acc:'ret:0-2', eco:'mab:2', bst:'plan:2', eng:'pp:1', pe:'tmm:1'},
 /*13 */ {acc:'ret:3-5', eco:'mab:3', bst:'org:0', eng:'intv:0', pe:'phy:0'},
-/*14 */ {acc:'ret:6-8', eco:'ie1:0', bst:'org:1', eng:'intv:1', pe:'phy:1'},
+/*14 */ {acc:'ret:6-8', eco:'ie1:0,hc:0-1', bst:'org:1', eng:'intv:1', pe:'phy:1'},
 /*15 */ {acc:'dis:0-2', eco:'ie1:1', bst:'org:2', eng:'gp:0', pe:'bio:0'},
-/*16 */ {acc:'dis:3-5', eco:'ie1:2', bst:'staff:0', eng:'gp:1', pe:'bio:1'},
+/*16 */ {acc:'dis:3-5', eco:'ie1:2,hc:2', bst:'staff:0,mktg:0', eng:'gp:1', pe:'bio:1'},
 /*17 */ {acc:'shc:0-2', eco:'ie2:0', bst:'staff:1', eng:'mm:0', pe:'psy:0'},
 /*18 */ {acc:'shc:3-5', eco:'ie2:1', bst:'staff:2', eng:'mm:1', pe:'psy:1'},
 /*19 */ {acc:'shc:6-8', eco:'ie2:2', bst:'dir:0', eng:'kq:0', pe:'trn:0'},
 /*20 */ {acc:'shc:9-10', eco:'gb:0', bst:'dir:1', eng:'kq:1', pe:'trn:1'},
-/*21 */ {acc:'deb:0-2', eco:'gb:1', bst:'dir:2', eng:'tob:0', pe:'se:0'},
+/*21 */ {acc:'deb:0-2', eco:'gb:1,emp:1-2', bst:'dir:2,cp:2', eng:'tob:0,vst:1', pe:'se:0'},
 /*22 */ {acc:'deb:3-5', eco:'gb:2', bst:'ctrl:0', eng:'tob:1', pe:'cwsn:0'},
-/*23 */ {acc:'deb:6,cfs:0-1', eco:'bop:0', bst:'ctrl:1', eng:'rss:0', pe:'yoga:0'},
+/*23 */ {acc:'deb:6,cfs:0-1', eco:'bop:0,inf:0', bst:'ctrl:1', eng:'rss:0,rc:1,wr:2', pe:'yoga:0'},
 /*24 */ {acc:'cfs:2-3,rat:0', eco:'bop:1', bst:'ctrl:2', eng:'rss:1', pe:'dis:0'},
 /*25 */ {acc:'rat:1-3', eco:'bop:2', bst:'fm:0', eng:'ajt:0', pe:'nut:0'},
 /*26 */ {acc:'rat:4-6', eco:'ie90:0', bst:'fm:1', eng:'ajt:1', pe:'tmm:0'},
 /*27 */ {acc:'rat:7,cf:0-1', eco:'ie90:1', bst:'fm:2', eng:'vst:0', pe:'phy:0'},
-/*28 */ {acc:'cf:2-4', eco:'ie90:2', bst:'fmkts:0', eng:'rc:0', pe:'bio:0'},
+/*28 */ {acc:'cf:2-4', eco:'ie90:2', bst:'fmkts:0', eng:'rc:0,vst:2-4', pe:'bio:0'},
 /*29 */ {acc:'cf:5-7', eco:'ref:0', bst:'fmkts:1', eng:'wr:0', pe:'psy:0'},
-/*30 */ {acc:'cf:8', eco:'ref:1', bst:'fmkts:2', eng:'wr:1', pe:'trn:1'},
+/*30 */ {acc:'cf:8', eco:'ref:1-2,comp:1', bst:'fmkts:2', eng:'wr:1,vst:5', pe:'trn:1'},
 ];
 
 const REV_PLAN = {
@@ -409,30 +409,52 @@ const REV_PLAN = {
 35: [['Revise Dissolution + Share Capital (forfeiture) + 3 questions',90],['Revise Reforms + Human Capital',60],['Revise Financial Mgmt + Markets',45]],
 36: [['Revise Debentures + Ratios + Cash Flow (formats only)',90],['Revise rest Eco chapters',60],['Revise Marketing + Consumer Protection',45]],
 37: [['PYQ: Partnership (all types) — 2 full papers',120],['PYQ: Macro numericals — 5 sums',60],['PYQ: English writing formats',45]],
-38: [['PYQ: Admission + Retirement — 2 full',120],['PYQ: Indian Economy long answers',60],['PYQ: PE Unit 1–3',45]],
+38: [['PYQ: Admission + Retirement — 2 full',90],['PYQ: Indian Economy long answers',60],['PYQ: PE Unit 1-3',45]],
 39: [['PYQ: Share Capital + Debentures — 2 full',120],['PYQ: Micro/macro mix',60],['PYQ: Vistas long answers',45]],
-40: [['PYQ: Ratios + Cash Flow — 2 full',120],['PYQ: Eco full section',60],['PYQ: BST case studies',45]],
-41: [['PYQ: Complete 2019 + 2020 papers',180],['PYQ: Complete 2019 Eco paper',90],['PYQ: 2019 English paper',60]],
-42: [['PYQ: Complete 2021 + 2022 papers',180],['PYQ: Complete 2021 Eco paper',90],['PYQ: 2021 English paper',60]],
-43: [['Mock: Full Accountancy (3 hr)',180],['Mock: Eco (3 hr) — alternate days',0],['Error log review',45]],
-44: [['Mock: Full Accountancy (3 hr)',180],['Mock: BST (3 hr)',180],['Error log review',45]],
-45: [['Mock: Full Accountancy (3 hr)',180],['Mock: English (3 hr)',180],['Error log review',45]],
-46: [['Mock: Full Accountancy (3 hr)',180],['Mock: PE (2 hr)',120],['Error log review',45]],
-47: [['Mock: Full Accountancy (3 hr)',180],['Mock: Eco (3 hr)',180],['Error log review',45]],
-48: [['Mock: Full Accountancy (3 hr)',180],['Mock: BST (3 hr)',180],['Error log review',45]],
-49: [['Accountancy weakest 3 topics — repair',120],['Eco formula sheet',45],['BST keywords all chapters',45]],
-50: [['Accountancy final weak-area revision',120],['All subjects: 1-page recall',60],['Set Jan–Feb mock plan',30]],
+40: [['PYQ: Ratios + Cash Flow — 2 full',90],['PYQ: Eco full section',60],['PYQ: BST case studies',45]],
+41: [['PYQ: Accountancy 2019 full paper',120],['PYQ: Economics 2019 paper',60]],
+42: [['Mock: Full Business Studies (3 hr)',180],['Error log review',45]],
+43: [['Mock: Full Accountancy (3 hr)',180],['Error log review',45]],
+44: [['Mock: Full Economics (3 hr)',180],['Error log review',45]],
+45: [['Sectional: Accountancy (90 min)',90],['Revise BST keywords + case format',60]],
+46: [['Sectional: Business Studies (90 min)',90],['Error log review',45]],
+47: [['Sectional: Economics (90 min)',90],['Revise PE Unit 1-4 + practical file',60]],
+48: [['Sectional: English Core (90 min)',90],['Writing formats + summary practice',60]],
+49: [['Mock: Full Accountancy #2 (3 hr)',180],['Error log review',45]],
+50: [['Mock: Full English Core (3 hr)',180],['Mock: Physical Education (2 hr)',120]],
 };
 
 /* ============ HELPERS ============ */
-const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-const dateOf = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d,12); };
+const iso = d => {
+  const dt = (d instanceof Date && !isNaN(d.getTime())) ? d : new Date();
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+};
+const dateOf = s => {
+  if (!s || typeof s !== 'string') return new Date();
+  const parts = s.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(n => !isFinite(n))) return new Date();
+  const dt = new Date(parts[0], parts[1]-1, parts[2], 12);
+  return isNaN(dt.getTime()) ? new Date() : dt;
+};
 const dayName = d => ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
-const fmt = s => dateOf(s).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-const minutes = s => { const [h,m]=s.split(':').map(Number); return h*60+m; };
+const fmt = s => {
+  if (!s || typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return '—';
+  const d = dateOf(s);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+};
+const minutes = s => {
+  if (!s || s === '—' || !/^\d{1,2}:\d{2}$/.test(String(s))) return NaN;
+  const [h,m] = String(s).split(':').map(Number);
+  return h*60+m;
+};
 const hm = n => `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;
 const taskStartMin = task => !task.start || task.start === '—' ? Number.MAX_SAFE_INTEGER : minutes(task.start);
-const pretty = s => { const [h,m]=s.split(':').map(Number); return new Date(2000,0,1,h,m).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit',hour12:true}); };
+const pretty = s => {
+  if (!s || s === '—' || !/^\d{1,2}:\d{2}$/.test(String(s))) return '—';
+  const [h,m] = String(s).split(':').map(Number);
+  return new Date(2000,0,1,h,m).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit',hour12:true});
+};
 const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function parseRange(str) {
@@ -517,6 +539,9 @@ function getSchoolStatus(dateStr) {
   if (state.dailyStatus && state.dailyStatus[dateStr]) {
     return normalizeStatus(state.dailyStatus[dateStr]);
   }
+  // Har Sunday default holiday (study + catch-up day). User chahe to date-specific
+  // status se ise "School Normal Day" bhi bana sakta hai.
+  if (dateOf(dateStr).getDay() === 0) return 'holiday';
   return 'attend'; // Default is School Normal Day for any new/unset date
 }
 
@@ -581,99 +606,180 @@ function todayDayNum() {
 }
 
 /* ============ SCHEDULE BUILDER ============ */
-function buildDayTasks(dateStr, dayNum, includeBacklog = true) {
-  const d = dateOf(dateStr);
-  const dow = d.getDay();
-  const school = getSchoolStatus(dateStr);
-  const holiday = school !== 'attend';
-  const tasks = [];
+function subjectName(sub) {
+  return sub === 'acc' ? 'Accountancy'
+    : sub === 'eco' ? 'Economics'
+    : sub === 'bst' ? 'Business Studies'
+    : sub === 'eng' ? 'English Core'
+    : 'Physical Education';
+}
+
+// Abhinav ka real routine:
+// School 7:00-14:00. Tabla class Tue/Thu 5:15-7:00, Wed 7:15-9:00, Fri 7:00-9:00.
+// Isliye morning deep-work 5:40-6:50 + class ke around evening blocks.
+function schoolStructure(dateStr) {
+  const dow = dateOf(dateStr).getDay();
+  const holiday = getSchoolStatus(dateStr) !== 'attend';
+  const blocks = [];
+  let windows;
 
   if (holiday) {
-    tasks.push({kind:'routine', subject:'Routine', title:'Breakfast + setup', desc:'Fresh ho jao, desk set karo.', start:'08:30', end:'09:00', type:'routine'});
+    blocks.push({kind:'routine', subject:'Routine', title:'Breakfast + setup', desc:'Fresh ho jao, desk set karo.', start:'08:00', end:'08:30', type:'routine'});
+    blocks.push({kind:'routine', subject:'Break', title:'Lunch + rest', desc:'Lunch, short walk, no screen.', start:'12:30', end:'14:00', type:'break'});
+    windows = [['08:30','12:30'], ['14:00','20:00']];
   } else {
-    tasks.push({kind:'routine', subject:'School', title:'School + commute', desc:'Notes + homework track karo.', start:'07:00', end:'14:00', type:'school'});
-    tasks.push({kind:'routine', subject:'Break', title:'Lunch + rest', desc:'Freshen up, lunch, rest.', start:'14:00', end:'15:30', type:'break'});
+    blocks.push({kind:'routine', subject:'School', title:'School + commute', desc:'Notes + homework track karo.', start:'07:00', end:'14:00', type:'school'});
+    blocks.push({kind:'routine', subject:'Break', title:'Lunch + rest', desc:'Freshen up, lunch, 30-min rest.', start:'14:00', end:'15:15', type:'break'});
+    windows = [['05:40','06:50'], ['15:15','18:00']];
   }
 
-  const tablaHoliday = ($('tablaMode') && $('tablaMode').value === 'holiday') || (state.settings && state.settings.tablaMode === 'holiday');
-  const tuition = (!tablaHoliday && (dow === 2 || dow === 4)) ? {start:'17:15', end:'19:00', title:'Class 5:15–7:00 PM'} :
-                 (!tablaHoliday && dow === 3) ? {start:'19:15', end:'21:00', title:'Class 7:15–9:00 PM'} :
-                 (!tablaHoliday && dow === 5) ? {start:'19:00', end:'21:00', title:'Class 7:00–9:00 PM'} : null;
-  const dinner = !holiday
-    ? ((dow === 3 || dow === 5) ? {start:'18:00', end:'19:00'} : {start:'19:00', end:'20:00'})
-    : null;
-  const studyWindows = holiday ? [['09:00','21:00']] : [['15:30','21:00']];
-  const occupied = [
-    ...(tuition ? [tuition] : []),
-    ...(dinner ? [dinner] : []),
-    ...tasks.filter(task => task.start && task.end)
-  ];
-  const addStudyTask = task => {
-    const duration = task.duration;
-    const slot = window.PlannerScheduling.findSlot(studyWindows, occupied, duration + 5);
-    if (!slot) {
-      task.start = '—';
-      task.end = '—';
-      task.overflow = true;
+  // Tabla class ko holiday par bhi mat hatao — ye fix commitment hai.
+  let tabla = null;
+  if (dow === 2 || dow === 4) tabla = {start:'17:15', end:'19:00', title:'Tabla class (5:15–7:00 PM)'};
+  else if (dow === 3) tabla = {start:'19:15', end:'21:00', title:'Tabla class (7:15–9:00 PM)'};
+  else if (dow === 5) tabla = {start:'19:00', end:'21:00', title:'Tabla class (7:00–9:00 PM)'};
+
+  let dinner = null;
+  if (!holiday) {
+    if (dow === 2 || dow === 4) dinner = {start:'19:00', end:'19:30'};
+    else if (dow === 3 || dow === 5) dinner = {start:'18:00', end:'19:00'};
+    else dinner = {start:'18:30', end:'19:15'};
+  }
+
+  if (!holiday) {
+    if (dow === 2 || dow === 4) {
+      // Tabla 5:15-7, dinner 7-7:30, phir 7:30-9:15 study.
+      windows = [['05:40','06:50'], ['15:15','17:00'], ['19:30','21:15']];
+    } else if (dow === 3 || dow === 5) {
+      // Tabla 7:15/7-9. Dinner pehle; class ke baad 45 min light revision.
+      windows = [['05:40','06:50'], ['15:15','18:00'], ['21:00','21:45']];
     } else {
-      task.start = slot.start;
-      task.end = hm(minutes(slot.start) + duration);
-      occupied.push({start:slot.start, end:slot.end});
+      windows = [['05:40','06:50'], ['15:15','18:30'], ['19:15','21:00']];
     }
-    delete task.duration;
-    tasks.push(task);
-  };
+  }
+
+  return { dow, holiday, blocks, windows, tabla, dinner };
+}
+
+function plannedBaseItems(dayNum) {
+  if (dayNum < 1 || dayNum > 50) return [];
   const plan = dayPlanFor(dayNum);
+  const items = [];
 
   if (plan) {
-    const order = ['acc','eco','bst','eng','pe'];
-    order.forEach(sub => {
-      const topicIds = plan[sub] || [];
-      if (!topicIds.length) return;
-      topicIds.forEach(tid => {
+    ['acc','eco','bst','eng','pe'].forEach(sub => {
+      (plan[sub] || []).forEach(tid => {
         const info = getChapterByTopicId(tid);
         if (!info) return;
-        const mins = info.topic[2] || 30;
-        addStudyTask({
+        items.push({
           kind:'topic',
-          subject: info.sub === 'acc' ? 'Accountancy' : info.sub === 'eco' ? 'Economics' : info.sub === 'bst' ? 'Business Studies' : info.sub === 'eng' ? 'English Core' : 'Physical Education',
+          subject: subjectName(info.sub),
           title: info.chapterName.split(' — ')[0].split('(')[0].trim() + ' — ' + info.topic[0],
           desc: info.topic[1],
-          start:'—', end:'—', topicId: tid, type:'study', duration: mins
+          topicId: tid,
+          type:'study',
+          duration: info.topic[2] || 30
         });
       });
-      if (sub === 'acc' && tasks.some(task => task.kind === 'topic' && task.subject === 'Accountancy' && task.start !== '—')) {
-        const breakSlot = window.PlannerScheduling.findSlot(studyWindows, occupied, 15);
-        if (breakSlot) {
-          tasks.push({kind:'routine', subject:'Break', title:'Short break', desc:'Stretch, water, eyes rest.', start:breakSlot.start, end:hm(minutes(breakSlot.start) + 10), type:'break'});
-          occupied.push({start:breakSlot.start, end:breakSlot.end});
-        }
-      }
     });
-  } else {
-    const rev = revTasksFor(dayNum);
-    if (rev) {
-      rev.forEach((r, i) => {
-        if (!r[1]) return;
-        addStudyTask({
-          kind:'rev', subject:'Revision', title: r[0], desc: 'Focus, time-bound. Black Book mistakes.',
-          start:'—', end:'—', revIdx: i, type:'revision', duration: r[1]
-        });
+    return items;
+  }
+
+  const rev = revTasksFor(dayNum);
+  if (rev) {
+    const originDate = iso(new Date(dateOf($('startDate').value || '2026-10-18').getTime() + (dayNum - 1) * DAY));
+    rev.forEach((r, i) => {
+      if (!r[1]) return;
+      items.push({
+        kind:'rev', subject:'Revision', title:r[0],
+        desc:'Focus, time-bound. Black Book mistakes.',
+        revIdx:i, originDate, type:'revision', duration:r[1]
       });
-    }
+    });
   }
+  return items;
+}
 
-  if (tuition) {
-    tasks.push({kind:'routine', subject:'Tuition', title: tuition.title, desc:'Class attend karo. Doubts star karo.', start: tuition.start, end: tuition.end, type:'class'});
-  }
+function layoutItems(structure, items) {
+  const occupied = [];
+  [...structure.blocks, structure.tabla, structure.dinner].forEach(block => {
+    if (block && block.start && block.end) occupied.push({start:block.start, end:block.end});
+  });
 
-  if (plan) {
-    if (!holiday) {
-      tasks.push({kind:'routine', subject:'Dinner + rest', title:'Dinner / relax', desc:'9 PM sleep routine maintain.', start:dinner.start, end:dinner.end, type:'break'});
+  const laid = [];
+  items.forEach(item => {
+    const duration = Math.max(10, Number(item.duration) || 30);
+    const slot = window.PlannerScheduling.findSlot(structure.windows, occupied, duration + 5);
+    if (!slot) {
+      item.start = '—';
+      item.end = '—';
+      item.overflow = true;
     } else {
-      tasks.push({kind:'routine', subject:'Plan tomorrow', title:'Wrap-up', desc:'Tick tracker update, kal ki books ready.', start:'17:00', end:'17:15', type:'routine'});
+      item.start = slot.start;
+      item.end = hm(minutes(slot.start) + duration);
+      occupied.push({start:slot.start, end:slot.end});
+    }
+    laid.push(item);
+  });
+
+  // Ek short break, sirf agar sach me free slot bacha ho aur wo din ke end par na ho.
+  if (laid.filter(t => !t.overflow).length >= 3) {
+    const breakSlot = window.PlannerScheduling.findSlot(structure.windows, occupied, 15);
+    const studyEnds = laid.filter(t => !t.overflow).map(t => minutes(t.end)).filter(Number.isFinite);
+    const lastEnd = studyEnds.length ? Math.max(...studyEnds) : 0;
+    if (breakSlot && minutes(breakSlot.start) < lastEnd - 5) {
+      laid.push({kind:'routine', subject:'Break', title:'Short break', desc:'Stretch, water, eyes rest.', start:breakSlot.start, end:hm(minutes(breakSlot.start) + 10), type:'break'});
     }
   }
+  return laid;
+}
+
+// Jo topics weekday par fit nahi hote, wo agle Sunday ke catch-up me jaate hain.
+function catchupItems(dateStr, dayNum) {
+  if (dayNum <= 1 || dayNum > 50) return [];
+  if (dateOf(dateStr).getDay() !== 0) return [];
+
+  const base = dateOf(dateStr).getTime();
+  const out = [];
+  const first = Math.max(1, dayNum - 6);
+  for (let n = first; n < dayNum; n++) {
+    const ds = iso(new Date(base - (dayNum - n) * DAY));
+    const laid = layoutItems(schoolStructure(ds), plannedBaseItems(n));
+    laid.filter(t => t.overflow).forEach(t => {
+      out.push({...t, start:'—', end:'—', overflow:false, catchup:true, movedFrom:ds, originDate:t.originDate || ds});
+    });
+  }
+  return out;
+}
+
+function movedTopicCount(dayNum) {
+  if (dayNum < 1 || dayNum > 50) return 0;
+  const ds = iso(new Date(dateOf($('startDate').value || '2026-10-18').getTime() + (dayNum - 1) * DAY));
+  if (dateOf(ds).getDay() === 0) return 0;
+  return layoutItems(schoolStructure(ds), plannedBaseItems(dayNum)).filter(t => t.overflow).length;
+}
+
+function buildDayTasks(dateStr, dayNum, includeBacklog = true) {
+  const structure = schoolStructure(dateStr);
+  const tasks = structure.blocks.map(task => ({...task}));
+
+  if (structure.tabla) {
+    tasks.push({
+      kind:'routine', subject:'Tabla', title: structure.tabla.title,
+      desc:'Class miss nahi hogi — study iske around planned hai.',
+      start: structure.tabla.start, end: structure.tabla.end, type:'class'
+    });
+  }
+  if (structure.dinner) {
+    tasks.push({
+      kind:'routine', subject:'Dinner + rest', title:'Dinner / relax',
+      desc:'Light dinner. Class day par 10 PM sleep.',
+      start: structure.dinner.start, end: structure.dinner.end, type:'break'
+    });
+  }
+
+  const items = [...plannedBaseItems(dayNum), ...catchupItems(dateStr, dayNum)];
+  layoutItems(structure, items).filter(task => !task.overflow).forEach(task => tasks.push(task));
 
   if (includeBacklog) {
     Object.values(state.backlog).filter(item => item.status === 'scheduled' && item.scheduledDate === dateStr)
@@ -694,7 +800,7 @@ function planForDate(dayNum) {
 /* ============ TASK TICK KEY ============ */
 function taskKey(dateStr, task) {
   if (task.kind === 'topic') return `d:${dateStr}:${task.topicId}`;
-  if (task.kind === 'rev') return `r:${dateStr}:${task.revIdx}`;
+  if (task.kind === 'rev') return `r:${task.originDate || dateStr}:${task.revIdx}`;
   return `x:${dateStr}:${task.start}:${task.title}`;
 }
 function isTaskDone(dateStr, task) {
@@ -733,7 +839,7 @@ function sourceIsDone(item) {
 }
 
 function backlogWindows(dateStr) {
-  return getSchoolStatus(dateStr) === 'attend' ? [['15:30','21:00']] : [['09:00','21:00']];
+  return schoolStructure(dateStr).windows;
 }
 
 function placeBacklogItem(item, dateStr) {
@@ -775,12 +881,19 @@ function syncBacklog() {
       .filter(task => !isTaskDone(date, task)).forEach(task => {
         const id = `${date}|${taskKey(date, task)}`;
         if (!state.backlog[id]) {
-          state.backlog[id] = {
-            id, kind:task.kind, originalDate:date, topicId:task.topicId, revIdx:task.revIdx,
-            subject:task.subject, title:task.title, desc:task.desc,
+          const entry = {
+            id, kind:task.kind, originalDate:date,
+            subject:task.subject, title:task.title, desc:task.desc || '',
             duration:task.kind === 'topic' ? (getChapterByTopicId(task.topicId)?.topic[2] || 30) : (revTasksFor(dayNum)?.[task.revIdx]?.[1] || 30),
             status:'pending', updatedAt:Date.now()
           };
+          // Firebase RTDB `undefined` values reject karta hai. Sirf relevant id bhejo.
+          if (task.kind === 'topic' && task.topicId) entry.topicId = task.topicId;
+          if (task.kind === 'rev' && Number.isInteger(task.revIdx)) {
+            entry.revIdx = task.revIdx;
+            if (task.originDate) entry.originDate = task.originDate;
+          }
+          state.backlog[id] = entry;
           changed = true;
         }
       });
@@ -871,10 +984,11 @@ function smartNext() {
 
   if (todayNum >= 1 && todayNum <= 50) {
     const todayTasks = buildDayTasks(today, todayNum);
+    const timed = todayTasks.filter(t => t.start && t.start !== '—');
     const nowMin = new Date().getHours()*60 + new Date().getMinutes();
-    const current = todayTasks.find(t => nowMin >= minutes(t.start) && nowMin < minutes(t.end) && !isTaskDone(today, t));
+    const current = timed.find(t => nowMin >= minutes(t.start) && nowMin < minutes(t.end) && !isTaskDone(today, t));
     if (current) return { type:'current', date: today, dayNum: todayNum, task: current };
-    const nextPending = todayTasks.find(t => !isTaskDone(today, t));
+    const nextPending = timed.find(t => minutes(t.start) >= nowMin && !isTaskDone(today, t)) || timed.find(t => !isTaskDone(today, t));
     if (nextPending) return { type:'next-today', date: today, dayNum: todayNum, task: nextPending };
   }
 
@@ -891,6 +1005,7 @@ function smartNext() {
       for (const tid of plan[sub]) {
         if (!isTopicDone(tid)) {
           const info = getChapterByTopicId(tid);
+          if (!info) continue;
           return { type:'backlog', date: ds, dayNum, task: {
             kind:'topic', topicId: tid, title: info.topic[0],
             desc: info.topic[1], chapterName: info.chapterName,
@@ -909,6 +1024,7 @@ function smartNext() {
       for (const sub of Object.keys(plan)) {
         if (plan[sub].length) {
           const info = getChapterByTopicId(plan[sub][0]);
+          if (!info) continue;
           return { type:'tomorrow', date: ds, dayNum: todayNum + 1, task: {
             kind:'topic', topicId: plan[sub][0], title: info.topic[0],
             desc: info.topic[1], chapterName: info.chapterName, start:'—', end:'—'
@@ -936,7 +1052,9 @@ function renderNow() {
     curTitle.textContent = prefix + (n.task.title || 'Task');
     curDesc.textContent = (n.task.chapterName ? n.task.chapterName + ' · ' : '') + (n.task.desc || '') + ' · ' + n.task.start + '–' + n.task.end;
     const todayTasks = buildDayTasks(iso(new Date()), todayDayNum());
-    const after = todayTasks.find(t => !isTaskDone(iso(new Date()), t) && t !== n.task && minutes(t.start) >= minutes(n.task.start));
+    const refMin = minutes(n.task.start);
+    const isSame = t => t.title === n.task.title && t.start === n.task.start && t.subject === n.task.subject;
+    const after = todayTasks.find(t => t.start && t.start !== '—' && !isTaskDone(iso(new Date()), t) && !isSame(t) && (!isFinite(refMin) || minutes(t.start) >= refMin));
     nextT.textContent = after ? after.title : '—';
     nextD.textContent = after ? after.desc : 'Aaj ke baaki blocks dekhne ke liye niche scroll karo.';
   } else if (n.type === 'backlog') {
@@ -946,7 +1064,7 @@ function renderNow() {
     nextD.textContent = 'Backlog clear hone ke baad today\'s plan continue karo.';
   } else if (n.type === 'tomorrow') {
     curTitle.textContent = '✓ Aaj ke study blocks done';
-    curDesc.textContent = '9 PM se pehle sleep routine. Kal ka pehla topic:';
+    curDesc.textContent = 'Class day ho to 10 PM, warna 9:30 PM tak sleep. Kal ka pehla topic:';
     nextT.textContent = n.task.title;
     nextD.textContent = n.task.chapterName + ' — ' + n.task.desc;
   } else {
@@ -960,7 +1078,9 @@ function renderNow() {
 /* ============ RENDER: DAY ============ */
 function render() {
   syncBacklog();
-  const sel = $('selectedDate').value || iso(new Date());
+  const selRaw = $('selectedDate').value;
+  const sel = (selRaw && /^\d{4}-\d{2}-\d{2}$/.test(selRaw)) ? selRaw : iso(new Date());
+  if (selRaw !== sel) $('selectedDate').value = sel;
   const curStatus = getSchoolStatus(sel);
   if ($('schoolMode') && $('schoolMode').value !== curStatus) {
     $('schoolMode').value = curStatus;
@@ -988,13 +1108,18 @@ function render() {
   tasks.forEach(task => {
     const done = isTaskDone(sel, task);
     const el = document.createElement('div');
-    el.className = 'task' + (done ? ' done' : '') + (task.kind === 'topic' || task.kind === 'backlog' ? ' topic-task' : '');
+    el.className = 'task' + (done ? ' done' : '')
+      + (task.kind === 'topic' || task.kind === 'backlog' ? ' topic-task' : '')
+      + (task.catchup ? ' is-catchup' : '');
     el.dataset.subject = subjectCode(task.subject);
-    const timeStr = pretty(task.start) + '<small>' + pretty(task.end) + '</small>';
+    const badge = task.catchup ? '<span class="nowbadge movedbadge">CATCH-UP</span>' : '';
+    const timeStr = task.start === '—'
+      ? `<span class="movedtag">Moved</span>`
+      : pretty(task.start) + '<small>' + pretty(task.end) + '</small>';
     el.innerHTML =
       `<input type="checkbox" ${done ? 'checked' : ''}>` +
       `<div class="time">${timeStr}</div>` +
-      `<div class="taskbody"><div class="tasktitle">${esc(task.title)}</div>` +
+      `<div class="taskbody"><div class="tasktitle">${esc(task.title)}${badge}</div>` +
       `<div class="desc">${esc(task.desc || '')}</div></div>`;
     el.querySelector('input').addEventListener('change', e => {
       setTaskDone(sel, task, e.target.checked);
@@ -1008,7 +1133,12 @@ function render() {
   const it = chosenIntensity(dateOf(sel).getDay());
   $('intensityTag').textContent = it;
   $('intensityTag').className = 'tag ' + it.toLowerCase();
-  $('daySummary').textContent = `Day ${Math.max(1,Math.min(50,dayNum))} · ${tasks.length} blocks · ${studyTasks.length} study`;
+  const moved = dayNum >= 1 && dayNum <= 50 ? movedTopicCount(dayNum) : 0;
+  const catchup = studyTasks.filter(t => t.catchup).length;
+  $('daySummary').textContent =
+    `Day ${Math.max(1,Math.min(50,dayNum))} · ${tasks.length} blocks · ${studyTasks.length} study`
+    + (catchup ? ` · ${catchup} catch-up` : '')
+    + (moved ? ` · ${moved} → Sunday` : '');
 
   renderRoadmap();
   renderStats();
@@ -1113,7 +1243,10 @@ function renderStats() {
   });
   for (let d = 31; d <= 50; d++) {
     const rev = revTasksFor(d);
-    if (rev) { total += rev.length; done += rev.filter((_,i) => state.revs[`r:${d}:${i}`]).length; }
+    if (!rev) continue;
+    const ds = iso(new Date(dateOf($('startDate').value || '2026-10-18').getTime() + (d - 1) * DAY));
+    total += rev.length;
+    done += rev.filter((_,i) => state.revs[`r:${ds}:${i}`]).length;
   }
   $('doneStat').textContent = done;
   $('totalStat').textContent = `${total} topics tracked`;
@@ -1129,7 +1262,7 @@ function renderStats() {
 const SUBJECT_CODE = {
   'Accountancy':'acc','Economics':'eco','Business Studies':'bst',
   'English Core':'eng','Physical Education':'pe',
-  'Revision':'rev','Tuition':'class','School':'routine','Break':'routine',
+  'Revision':'rev','Tuition':'class','Tabla':'class','School':'routine','Break':'routine',
   'Routine':'routine','Dinner + rest':'routine','Plan tomorrow':'routine',
 };
 function subjectCode(s) { return SUBJECT_CODE[s] || 'routine'; }
@@ -1302,7 +1435,10 @@ async function doCloudSave() {
       userId: user.userId || 'abhinav',
       lastUpdated: state.lastUpdated || Date.now()
     };
-    await pushToCloud(payload);
+    // Purane backlog entries mein undefined fields ho sakte hain. Firebase unhe
+    // reject karta hai, isliye cloud par bhejne se pehle clean copy banao.
+    const cleanPayload = JSON.parse(JSON.stringify(payload));
+    await pushToCloud(cleanPayload);
 
     if (user && user.userId && user.userId !== 'guest') {
       const userRef = db.ref('users/' + user.userId);
